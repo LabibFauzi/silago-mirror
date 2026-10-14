@@ -27,10 +27,10 @@ class UserController extends Controller
             ->withCount(['products', 'marketplaceDeals as deals_count'])
             ->when($status !== 'all', fn($q) => $q->where('status', $status))
             ->when($search, function ($q) use ($search) {
-                $searchTerm = "%{$search}%";
-                $q->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm)
-                      ->orWhere('email', 'like', $searchTerm);
+                $searchLower = strtolower($search);
+                $q->where(function ($q) use ($searchLower) {
+                    $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                      ->orWhere('email', 'like', "%{$searchLower}%");
                 });
             })
             ->latest()

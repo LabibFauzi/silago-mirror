@@ -26,10 +26,10 @@ class VerificationController extends Controller
         $products = Product::with(['seller', 'category', 'images'])
             ->when($status && $status !== 'all', fn($q) => $q->where('verification_status', $status))
             ->when($search, function ($q) use ($search) {
-                $searchTerm = "%{$search}%";
-                $q->where(function ($q) use ($searchTerm) {
-                    $q->where('name', 'like', $searchTerm)
-                      ->orWhereHas('seller', fn($q) => $q->where('name', 'like', $searchTerm));
+                $searchLower = strtolower($search);
+                $q->where(function ($q) use ($searchLower) {
+                    $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                      ->orWhereHas('seller', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]));
                 });
             })
             ->latest()

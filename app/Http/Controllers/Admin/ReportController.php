@@ -26,10 +26,10 @@ class ReportController extends Controller
         $reports = Report::with(['reporter', 'reportedUser', 'product', 'marketplaceDeal'])
             ->when($status && $status !== 'all', fn($q) => $q->where('status', $status))
             ->when($search, function ($q) use ($search) {
-                $searchTerm = "%{$search}%";
+                $searchTerm = strtolower($search);
                 $q->where(function ($q) use ($searchTerm) {
-                    $q->where('id', 'like', $searchTerm)
-                      ->orWhereHas('reporter', fn($q) => $q->where('name', 'like', $searchTerm));
+                    $q->where('id', 'like', "%{$searchTerm}%")
+                      ->orWhereHas('reporter', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchTerm}%"]));
                 });
             })
             ->latest()

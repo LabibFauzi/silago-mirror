@@ -37,11 +37,12 @@ class TransactionController extends Controller
                 }
             })
             ->when($search, function ($q) use ($search) {
-                $q->where(function ($q) use ($search) {
-                    $q->where('id', 'like', "%{$search}%")
-                      ->orWhereHas('buyer', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('seller', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('product', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                $searchLower = strtolower($search);
+                $q->where(function ($q) use ($searchLower) {
+                    $q->where('id', 'like', "%{$searchLower}%")
+                      ->orWhereHas('buyer', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]))
+                      ->orWhereHas('seller', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]))
+                      ->orWhereHas('product', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]));
                 });
             })
             ->latest()

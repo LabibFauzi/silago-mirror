@@ -36,10 +36,11 @@ class StockController extends Controller
                 }
             })
             ->when($search, function ($q) use ($search) {
-                $q->where(function ($q) use ($search) {
-                    $q->where('name', 'like', "%{$search}%")
-                      ->orWhereHas('seller', fn($q) => $q->where('name', 'like', "%{$search}%"))
-                      ->orWhereHas('category', fn($q) => $q->where('name', 'like', "%{$search}%"));
+                $searchLower = strtolower($search);
+                $q->where(function ($q) use ($searchLower) {
+                    $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"])
+                      ->orWhereHas('seller', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]))
+                      ->orWhereHas('category', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]));
                 });
             })
             ->latest()

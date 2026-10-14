@@ -26,8 +26,9 @@ class ConversationController extends Controller
             ->with(['product.images', 'buyer', 'seller', 'lastMessage']);
 
         if ($request->filled('q')) {
-            $query->whereHas('product', function ($q) use ($request) {
-                $q->where('name', 'like', '%' . $request->q . '%');
+            $search = strtolower($request->q);
+            $query->whereHas('product', function ($q) use ($search) {
+                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
             });
         }
 

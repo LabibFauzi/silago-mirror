@@ -17,9 +17,10 @@ class AuditController extends Controller
         $auditLogs = AuditLog::with('admin')
             ->when($category, fn($q) => $q->where('category', $category))
             ->when($search, function ($q) use ($search) {
-                $q->where(function ($q) use ($search) {
-                    $q->where('action', 'like', "%$search%")
-                      ->orWhereHas('admin', fn($q) => $q->where('name', 'like', "%$search%"));
+                $searchLower = strtolower($search);
+                $q->where(function ($q) use ($searchLower) {
+                    $q->whereRaw('LOWER(action) LIKE ?', ["%{$searchLower}%"])
+                      ->orWhereHas('admin', fn($q) => $q->whereRaw('LOWER(name) LIKE ?', ["%{$searchLower}%"]));
                 });
             })
             ->latest()
