@@ -12,11 +12,14 @@ chmod -R 775 storage bootstrap/cache
 if [ ! -z "$DATABASE_URL" ]; then
     echo "Detected DATABASE_URL, using PostgreSQL..."
     export DB_CONNECTION=pgsql
+else
+    # Default ke PostgreSQL kalau tidak ada DATABASE_URL explicit
+    export DB_CONNECTION=${DB_CONNECTION:-pgsql}
 fi
 
 # Create .env if not exists (Render provides env vars, but Laravel needs .env file)
 if [ ! -f .env ]; then
-    echo "Creating .env file..."
+    echo "Creating .env file with DB_CONNECTION=${DB_CONNECTION}..."
     cat > .env << EOF
 APP_NAME="Si LAGO"
 APP_ENV=production
@@ -24,7 +27,7 @@ APP_KEY=
 APP_DEBUG=false
 APP_URL=${APP_URL:-http://localhost}
 
-DB_CONNECTION=${DB_CONNECTION:-sqlite}
+DB_CONNECTION=${DB_CONNECTION}
 DB_URL=${DATABASE_URL:-}
 DB_HOST=${DB_HOST:-127.0.0.1}
 DB_PORT=${DB_PORT:-5432}
