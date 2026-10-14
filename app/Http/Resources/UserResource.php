@@ -20,6 +20,9 @@ class UserResource extends JsonResource
             'role' => $this->role,
             'status' => $this->status,
             'email_verified_at' => $this->email_verified_at,
+            'two_factor_enabled' => $this->two_factor_enabled,
+            'email_domain_verified' => $this->email_domain_verified,
+            'avatar_url' => $this->avatar ?: ($this->profile_photo ? Storage::url($this->profile_photo) : null),
             'created_at' => $this->created_at,
         ];
     }

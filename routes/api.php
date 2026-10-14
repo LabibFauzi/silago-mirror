@@ -23,6 +23,9 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::post('/verify-email',         [\App\Http\Controllers\Api\V1\AuthController::class, 'verifyEmail']);
         Route::post('/resend-verification',  [\App\Http\Controllers\Api\V1\AuthController::class, 'resendVerification']);
         Route::post('/login',                [\App\Http\Controllers\Api\V1\AuthController::class, 'login'])->withoutMiddleware('maintenance');
+        Route::post('/verify-otp',           [\App\Http\Controllers\Api\V1\AuthController::class, 'verifyOtp']);
+        Route::post('/resend-otp',           [\App\Http\Controllers\Api\V1\AuthController::class, 'resendOtp']);
+        Route::post('/login-google',         [\App\Http\Controllers\Api\V1\AuthController::class, 'loginGoogle']);
         Route::post('/forgot-password',      [\App\Http\Controllers\Api\V1\AuthController::class, 'forgotPassword']);
         Route::post('/reset-password',       [\App\Http\Controllers\Api\V1\AuthController::class, 'resetPassword']);
     });
@@ -38,6 +41,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::get('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'me']);
         Route::put('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
         Route::post('/me/fcm-token',  [\App\Http\Controllers\Api\V1\ProfileController::class, 'updateFcmToken']);
+        // Route::post('/me/2fa/toggle', [\App\Http\Controllers\Api\V1\AuthController::class, 'toggleTwoFactor']); // 2FA disabled
         Route::get('/me/summary',     [\App\Http\Controllers\Api\V1\ProfileController::class, 'summary']);
         Route::get('/me/products',    [\App\Http\Controllers\Api\V1\ProductController::class, 'myProducts']);
         Route::get('/me/favorites',   [\App\Http\Controllers\Api\V1\FavoriteController::class, 'index']);

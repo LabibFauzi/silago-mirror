@@ -3,7 +3,6 @@
 namespace App\Http\Requests\Api;
 
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Support\Facades\DB;
 
 class RegisterRequest extends FormRequest
 {
@@ -17,29 +16,12 @@ class RegisterRequest extends FormRequest
         return [
             'name' => 'required|string|max:100',
             'nim' => 'required|string|max:20|unique:users|regex:/^[0-9.]+$/',
-            'email' => [
-                'required',
-                'email',
-                'unique:users',
-                function ($attribute, $value, $fail) {
-                    $setting = DB::table('settings')->where('key', 'allowed_email_domains')->first();
-                    if ($setting && $setting->value) {
-                        $domains = explode("\n", str_replace("\r", "", $setting->value));
-                        $valid = false;
-                        foreach ($domains as $domain) {
-                            $domain = trim($domain);
-                            if ($domain && str_ends_with(strtolower($value), strtolower($domain))) {
-                                $valid = true;
-                                break;
-                            }
-                        }
-                        if (!$valid) {
-                            $allowedStr = implode(', ', array_filter(array_map('trim', $domains)));
-                            $fail("Email harus menggunakan domain yang diizinkan ({$allowedStr}). Contoh: mahasiswa@polines.ac.id");
-                        }
-                    }
+            'email' => ['required', 'email', 'unique:users', function ($attribute, $value, $fail) {
+                $domain = strtolower(substr(strrchr($value, '@'), 1));
+                if ($domain !== 'mhs.polines.ac.id') {
+                    $fail('Email harus menggunakan domain mahasiswa (@mhs.polines.ac.id).');
                 }
-            ],
+            }],
             'password' => 'required|string|min:8|confirmed',
         ];
     }

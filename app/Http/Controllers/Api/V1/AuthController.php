@@ -7,6 +7,8 @@ use App\Http\Requests\Api\RegisterRequest;
 use App\Http\Requests\Api\LoginRequest;
 use App\Http\Resources\UserResource;
 use App\Models\User;
+use App\Services\GoogleAuthService;
+use App\Services\OtpService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
@@ -17,6 +19,15 @@ use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
+    protected OtpService $otpService;
+    protected GoogleAuthService $googleAuthService;
+
+    public function __construct(OtpService $otpService, GoogleAuthService $googleAuthService)
+    {
+        $this->otpService = $otpService;
+        $this->googleAuthService = $googleAuthService;
+    }
+
     public function register(RegisterRequest $request)
     {
         $user = User::create([
@@ -28,9 +39,14 @@ class AuthController extends Controller
             'status' => 'active',
         ]);
 
+        // Set email_domain_verified untuk email @mhs.polines.ac.id
+        $emailDomain = strtolower(substr(strrchr($request->email, '@'), 1));
+        if ($emailDomain === 'mhs.polines.ac.id') {
+            $user->update(['email_domain_verified' => true]);
+        }
+
         $code = rand(100000, 999999);
         Cache::put('email_verify_' . $user->email, $code, now()->addMinutes(15));
-        Log::info('Email verification code for ' . $user->email . ' is ' . $code);
 
         return response()->json([
             'message' => 'Registrasi berhasil. Silakan cek email untuk kode verifikasi.',
@@ -78,7 +94,6 @@ class AuthController extends Controller
 
         $code = rand(100000, 999999);
         Cache::put('email_verify_' . $user->email, $code, now()->addMinutes(15));
-        Log::info('Resend Email verification code for ' . $user->email . ' is ' . $code);
 
         return response()->json(['message' => 'Kode verifikasi telah dikirim ulang.']);
     }
@@ -130,6 +145,101 @@ class AuthController extends Controller
         ]);
     }
 
+    /**
+     * Verifikasi OTP untuk login 2FA.
+     */
+    public function verifyOtp(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'code' => 'required|string',
+        ]);
+
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        if (!$this->otpService->verify($user, $request->code, 'login')) {
+            return response()->json([
+                'message' => 'Kode OTP tidak valid atau kedaluwarsa.',
+                'errors' => ['code' => ['Kode tidak valid']]
+            ], 400);
+        }
+
+        $token = $user->createToken('silago_api')->plainTextToken;
+
+        return response()->json([
+            'message' => 'Verifikasi berhasil',
+            'token' => $token,
+            'user' => new UserResource($user)
+        ]);
+    }
+
+    /**
+     * Kirim ulang OTP.
+     */
+    public function resendOtp(Request $request)
+    {
+        $request->validate(['email' => 'required|email']);
+
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        $key = 'resend_otp_' . $request->email;
+        if (RateLimiter::tooManyAttempts($key, 1)) {
+            return response()->json(['message' => 'Terlalu banyak percobaan. Tunggu beberapa saat.'], 429);
+        }
+        RateLimiter::hit($key, 60);
+
+        $this->otpService->generateAndSend($user, 'login');
+
+        return response()->json(['message' => 'Kode OTP telah dikirim ulang.']);
+    }
+
+    /**
+     * Login dengan Google OAuth.
+     */
+    public function loginGoogle(Request $request)
+    {
+        $request->validate([
+            'access_token' => 'required|string',
+        ]);
+
+        try {
+            $result = $this->googleAuthService->handleCallback($request->access_token);
+            $user = $result['user'];
+
+            if ($user->status === 'suspended') {
+                throw new \Exception('Akun Anda telah ditangguhkan.');
+            }
+
+            if ($request->filled('fcm_token')) {
+                $user->update(['fcm_token' => $request->fcm_token]);
+            }
+
+            return response()->json([
+                'token' => $result['token'],
+                'user' => new UserResource($user)
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => $e->getMessage(),
+                'errors' => ['google' => [$e->getMessage()]]
+            ], 400);
+        }
+    }
+
+    /**
+     * Toggle 2FA/OTP untuk user.
+     */
+    public function toggleTwoFactor(Request $request)
+    {
+        $user = $request->user();
+        $user->update(['two_factor_enabled' => !$user->two_factor_enabled]);
+
+        return response()->json([
+            'message' => 'Status 2FA berhasil diperbarui.',
+            'two_factor_enabled' => $user->two_factor_enabled,
+        ]);
+    }
+
     public function logout(Request $request)
     {
         $request->user()->currentAccessToken()->delete();
@@ -138,11 +248,58 @@ class AuthController extends Controller
 
     public function forgotPassword(Request $request)
     {
-        return response()->json(['message' => 'Not implemented'], 501);
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+        ], [
+            'email.exists' => 'Email tidak terdaftar di sistem.',
+        ]);
+
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        // Rate limiting
+        $key = 'forgot_password_' . $request->email;
+        if (RateLimiter::tooManyAttempts($key, 1)) {
+            return response()->json([
+                'message' => 'Terlalu banyak percobaan. Tunggu beberapa saat.'
+            ], 429);
+        }
+        RateLimiter::hit($key, 120);
+
+        // Generate OTP reset password
+        $this->otpService->generateAndSend($user, 'reset_password');
+
+        return response()->json([
+            'message' => 'Kode reset password telah dikirim ke email Anda.',
+            'email' => $user->email,
+        ]);
     }
 
     public function resetPassword(Request $request)
     {
-        return response()->json(['message' => 'Not implemented'], 501);
+        $request->validate([
+            'email' => 'required|email|exists:users,email',
+            'code' => 'required|string|size:' . config('services.otp.length', 6),
+            'password' => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = User::where('email', $request->email)->firstOrFail();
+
+        if (!$this->otpService->verify($user, $request->code, 'reset_password')) {
+            return response()->json([
+                'message' => 'Kode reset password tidak valid atau kedaluwarsa.',
+                'errors' => ['code' => ['Kode tidak valid']]
+            ], 400);
+        }
+
+        $user->update([
+            'password' => Hash::make($request->password),
+        ]);
+
+        // Hapus semua token yang ada
+        $user->tokens()->delete();
+
+        return response()->json([
+            'message' => 'Kata sandi berhasil direset. Silakan login dengan kata sandi baru.',
+        ]);
     }
 }

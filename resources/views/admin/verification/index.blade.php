@@ -2,22 +2,18 @@
 @section('title', 'Verifikasi Barang')
 
 @section('content')
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
     <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
         <h3 class="text-sm font-medium text-muted mb-2">Menunggu Verifikasi</h3>
         <div class="text-3xl font-bold text-ink">{{ number_format($pendingCount ?? 0, 0, ',', '.') }}</div>
     </div>
     <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Disetujui Hari Ini</h3>
-        <div class="text-3xl font-bold text-ink">{{ number_format($approvedTodayCount ?? 0, 0, ',', '.') }}</div>
+        <h3 class="text-sm font-medium text-muted mb-2">Disetujui</h3>
+        <div class="text-3xl font-bold text-ink">{{ number_format($totalApprovedCount ?? 0, 0, ',', '.') }}</div>
     </div>
     <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Ditolak Hari Ini</h3>
-        <div class="text-3xl font-bold text-ink">{{ number_format($rejectedTodayCount ?? 0, 0, ',', '.') }}</div>
-    </div>
-    <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Terindikasi</h3>
-        <div class="text-3xl font-bold text-ink">{{ number_format($flaggedCount ?? 0, 0, ',', '.') }}</div>
+        <h3 class="text-sm font-medium text-muted mb-2">Ditolak</h3>
+        <div class="text-3xl font-bold text-ink">{{ number_format($totalRejectedCount ?? 0, 0, ',', '.') }}</div>
     </div>
 </div>
 
@@ -42,7 +38,6 @@
                     <th class="px-6 py-4">Barang</th>
                     <th class="px-6 py-4">Penjual</th>
                     <th class="px-6 py-4">Kategori</th>
-                    <th class="px-6 py-4">Terindikasi</th>
                     <th class="px-6 py-4">Waktu</th>
                     <th class="px-6 py-4">Status</th>
                     <th class="px-6 py-4 text-right">Aksi</th>
@@ -62,13 +57,6 @@
                     </td>
                     <td class="px-6 py-4">{{ $product->seller->name ?? '-' }}</td>
                     <td class="px-6 py-4">{{ $product->category->name ?? '-' }}</td>
-                    <td class="px-6 py-4">
-                        @if($product->scan_result === 'flagged')
-                            <span class="bg-red-100 text-red-700 py-1 px-2 rounded-md text-xs">Ya</span>
-                        @else
-                            <span class="bg-gray-100 text-gray-600 py-1 px-2 rounded-md text-xs">Tidak</span>
-                        @endif
-                    </td>
                     <td class="px-6 py-4">{{ $product->created_at ? $product->created_at->format('d M Y, H:i') : '-' }}</td>
                     <td class="px-6 py-4">
                         @if($product->verification_status === 'pending')
@@ -87,7 +75,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="7" class="px-6 py-8 text-center text-muted">Tidak ada barang</td>
+                    <td colspan="6" class="px-6 py-8 text-center text-muted">Tidak ada barang</td>
                 </tr>
                 @endforelse
             </tbody>

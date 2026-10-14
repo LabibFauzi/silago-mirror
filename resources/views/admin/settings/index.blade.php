@@ -30,22 +30,41 @@
                 </div>
             </div>
         </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-line flex justify-end">
+            <button type="submit" class="bg-brand hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors">
+                Simpan Pengaturan
+            </button>
+        </div>
     </form>
 
-    <!-- Stok Minimum -->
+    <!-- Moderasi Konten -->
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
         
         <div class="p-6">
-            <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Notifikasi Stok</h3>
+            <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Moderasi Konten</h3>
             <div class="space-y-4">
+                <div class="flex items-start">
+                    <input type="checkbox" name="banned_words_enabled" value="1" id="banned_words_enabled" {{ ($settings['banned_words_enabled'] ?? '0') === '1' ? 'checked' : '' }} class="mt-1 h-4 w-4 text-brand border-line rounded focus:ring-brand">
+                    <div class="ml-3">
+                        <label for="banned_words_enabled" class="text-sm font-medium text-ink">Aktifkan Filter Kata Terlarang</label>
+                        <p class="text-xs text-muted">Blokir postingan yang mengandung kata tidak pantas</p>
+                    </div>
+                </div>
                 <div>
-                    <label class="block text-sm font-medium text-ink mb-1">Batas Stok Minimum</label>
-                    <p class="text-xs text-muted mb-2">Notifikasi akan dikirim ketika stok mencapai batas ini</p>
-                    <input type="number" name="low_stock_threshold" value="{{ $settings['low_stock_threshold'] ?? 10 }}" min="0" class="w-full p-2 border border-line rounded-lg focus:ring-brand focus:border-brand">
+                    <label class="block text-sm font-medium text-ink mb-1">Daftar Kata Terlarang</label>
+                    <p class="text-xs text-muted mb-2">Pisahkan dengan koma. Contoh: judi, narkoba, penipuan</p>
+                    <textarea name="banned_words" rows="3" class="w-full p-2 border border-line rounded-lg focus:ring-brand focus:border-brand" placeholder="kata1, kata2, kata3">{{ $settings['banned_words'] ?? '' }}</textarea>
                 </div>
             </div>
+        </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-line flex justify-end">
+            <button type="submit" class="bg-brand hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors">
+                Simpan Pengaturan
+            </button>
         </div>
     </form>
 
@@ -64,9 +83,15 @@
                 </div>
             </div>
         </div>
+
+        <div class="px-6 py-4 bg-gray-50 border-t border-line flex justify-end">
+            <button type="submit" class="bg-brand hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors">
+                Simpan Pengaturan
+            </button>
+        </div>
     </form>
 
-    <!-- Mode Maintenance & 2FA -->
+    <!-- Mode Maintenance -->
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
@@ -79,13 +104,6 @@
                     <div class="ml-3">
                         <label for="maintenance_mode" class="text-sm font-medium text-ink">Mode Maintenance</label>
                         <p class="text-xs text-muted">Aktifkan untuk menonaktifkan akses pengguna sementara</p>
-                    </div>
-                </div>
-                <div class="flex items-start pt-4 border-t border-line">
-                    <input type="checkbox" name="admin_2fa_required" value="1" id="admin_2fa_required" {{ ($settings['admin_2fa_required'] ?? '0') === '1' ? 'checked' : '' }} class="mt-1 h-4 w-4 text-brand border-line rounded focus:ring-brand">
-                    <div class="ml-3">
-                        <label for="admin_2fa_required" class="text-sm font-medium text-ink">Verifikasi Dua Langkah (2FA)</label>
-                        <p class="text-xs text-muted">Wajibkan admin untuk verifikasi dua langkah saat login</p>
                     </div>
                 </div>
             </div>

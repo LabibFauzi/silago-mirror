@@ -22,9 +22,18 @@ class User extends Authenticatable
         'email',
         'phone',
         'password',
+        'role',
+        'status',
+        'email_verified_at',
         'profile_photo',
         'suspend_reason',
         'suspended_at',
+        'google_id',
+        'avatar',
+        'otp_code',
+        'otp_expires_at',
+        'email_domain_verified',
+        'two_factor_enabled',
     ];
 
     /**
@@ -45,6 +54,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
             'suspended_at' => 'datetime',
+            'otp_expires_at' => 'datetime',
+            'email_domain_verified' => 'boolean',
+            'two_factor_enabled' => 'boolean',
         ];
     }
 

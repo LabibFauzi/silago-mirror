@@ -30,10 +30,8 @@ class SettingController extends Controller
             'support_email' => ['nullable', 'email', 'max:255'],
             'max_photos' => ['nullable', 'integer', 'min:1'],
             'listing_active_days' => ['nullable', 'integer', 'min:1'],
-            'low_stock_threshold' => ['nullable', 'integer', 'min:0'],
             'session_timeout_minutes' => ['nullable', 'integer', 'min:1'],
             'maintenance_mode' => ['nullable', 'boolean'],
-            'admin_2fa_required' => ['nullable', 'boolean'],
             'banned_words_enabled' => ['nullable', 'boolean'],
             'banned_words' => ['nullable', 'string'],
         ]);
@@ -42,8 +40,8 @@ class SettingController extends Controller
             DB::transaction(function () use ($request) {
                 $keys = [
                     'app_name', 'support_email', 'max_photos', 'listing_active_days',
-                    'low_stock_threshold', 'session_timeout_minutes', 'maintenance_mode',
-                    'admin_2fa_required', 'banned_words_enabled', 'banned_words'
+                    'session_timeout_minutes', 'maintenance_mode',
+                    'banned_words_enabled', 'banned_words'
                 ];
 
                 foreach ($keys as $key) {
@@ -53,7 +51,7 @@ class SettingController extends Controller
                 }
 
                 // Handle unchecked checkboxes (browsers don't send them)
-                foreach (['maintenance_mode', 'admin_2fa_required', 'banned_words_enabled'] as $checkbox) {
+                foreach (['maintenance_mode', 'banned_words_enabled'] as $checkbox) {
                     if (!$request->has($checkbox)) {
                         $this->settingService->set($checkbox, '0');
                     }

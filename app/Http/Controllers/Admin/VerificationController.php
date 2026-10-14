@@ -37,11 +37,10 @@ class VerificationController extends Controller
             ->withQueryString();
 
         $pendingCount = Product::where('verification_status', 'pending')->count();
-        $approvedTodayCount = Product::where('verification_status', 'verified')->whereDate('verified_at', today())->count();
-        $rejectedTodayCount = Product::where('verification_status', 'rejected')->whereDate('updated_at', today())->count();
-        $flaggedCount = Product::where('scan_result', 'flagged')->count();
+        $totalApprovedCount = Product::where('verification_status', 'verified')->count();
+        $totalRejectedCount = Product::where('verification_status', 'rejected')->count();
 
-        return view('admin.verification.index', compact('products', 'status', 'pendingCount', 'approvedTodayCount', 'rejectedTodayCount', 'flaggedCount'));
+        return view('admin.verification.index', compact('products', 'status', 'pendingCount', 'totalApprovedCount', 'totalRejectedCount'));
     }
 
     public function approve(Request $request, Product $product): RedirectResponse

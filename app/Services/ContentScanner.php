@@ -9,7 +9,7 @@ use Illuminate\Support\Facades\Cache;
  * ContentScanner: mencocokkan nama dan deskripsi barang dengan daftar
  * kata terlarang dari pengaturan sistem. Mengisi scan_result dan scan_note.
  *
- * Nilai scan_result: safe, review, sara, pornografi, terlarang
+ * Nilai scan_result: safe, flagged
  */
 class ContentScanner
 {
@@ -25,8 +25,9 @@ class ContentScanner
         }
 
         $bannedWordsRaw = Setting::find('banned_words')?->value ?? '';
+        // Support separator koma atau newline
         $words = array_filter(
-            array_map('trim', explode("\n", strtolower($bannedWordsRaw)))
+            array_map('trim', preg_split('/[\n,]/', strtolower($bannedWordsRaw)))
         );
 
         if (empty($words)) {
@@ -46,6 +47,6 @@ class ContentScanner
             return ['safe', null];
         }
 
-        return ['review', implode(', ', array_slice($found, 0, 5))];
+        return ['flagged', implode(', ', array_slice($found, 0, 5))];
     }
 }

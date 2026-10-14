@@ -53,15 +53,35 @@ class DummyDataSeeder extends Seeder
         $statuses = ['available', 'sold'];
         $verifications = ['pending', 'verified', 'rejected'];
 
+        // Nama produk yang bervariasi agar search bisa di-test
+        $productNames = [
+            1 => 'Laptop ASUS VivoBook Bekas',
+            2 => 'Jaket Kulit Vintage',
+            3 => 'Sepeda Gunung Polygon',
+            4 => 'Buku Pemrograman Dart Flutter',
+            5 => 'Rice Cooker Mini',
+            6 => 'Dumbbell Set 5KG',
+            7 => 'Tas Ransel Eiger',
+            8 => 'Mouse Logitech Wireless',
+            9 => 'Kaos Polos Cotton',
+            10 => 'Helm Motor SNI',
+            11 => 'Novel Laskar Pelangi',
+            12 => 'Lampu Belajar LED',
+            13 => 'Matras Yoga',
+            14 => 'Charger Laptop Lenovo',
+            15 => 'Celana Jeans',
+        ];
+
         for ($i = 1; $i <= 15; $i++) {
-            $status = $statuses[$i % 2];
-            $verification = $verifications[$i % 3];
+            $status = 'available'; // Semua set available biar muncul
+            // Pastikan minimal 70% verified agar search & kategori bisa di-test
+            $verification = $i <= 10 ? 'verified' : ($i <= 13 ? 'pending' : 'rejected');
             $seller = $sellers[($i - 1) % 5];
 
             $product = Product::create([
                 'seller_id' => $seller->id,
                 'category_id' => $categories[($i - 1) % 7],
-                'name' => "Produk Dummy $i",
+                'name' => $productNames[$i],
                 'description' => "Deskripsi produk dummy $i - barang bekas dalam kondisi baik.",
                 'condition' => $i % 3 === 0 ? 'baru' : 'bekas',
                 'specification' => "Spesifikasi produk $i",

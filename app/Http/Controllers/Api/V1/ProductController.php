@@ -59,7 +59,9 @@ class ProductController extends Controller
             default => $query->latest(), // newest
         };
 
-        $products = $query->paginate(15);
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = max(1, min($perPage, 100));
+        $products = $query->paginate($perPage);
 
         return ProductListResource::collection($products);
     }
@@ -134,7 +136,7 @@ class ProductController extends Controller
     /**
      * Update produk.
      */
-    public function update(UpdateProductRequest $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product, ContentScanner $scanner)
     {
         if ($request->user()->id !== $product->seller_id) {
             abort(403, 'Anda tidak berhak mengubah produk ini.');
@@ -152,7 +154,17 @@ class ProductController extends Controller
 
         $needsVerification = $request->has('name') || $request->has('description') || $request->hasFile('photos');
 
-        $updatedProduct = DB::transaction(function () use ($request, $product, $needsVerification) {
+        // Rescan konten jika nama atau deskripsi berubah
+        if ($needsVerification && ($request->has('name') || $request->has('description'))) {
+            [$scanResult, $scanNote] = $scanner->scan(
+                $request->input('name', $product->name),
+                $request->input('description', $product->description)
+            );
+        } else {
+            [$scanResult, $scanNote] = [$product->scan_result, $product->scan_note];
+        }
+
+        $updatedProduct = DB::transaction(function () use ($request, $product, $needsVerification, $scanResult, $scanNote) {
             // Lock baris untuk update agar aman
             $lockedProduct = Product::where('id', $product->id)->lockForUpdate()->first();
             
@@ -160,6 +172,8 @@ class ProductController extends Controller
             
             if ($needsVerification) {
                 $lockedProduct->verification_status = 'pending';
+                $lockedProduct->scan_result = $scanResult;
+                $lockedProduct->scan_note = $scanNote;
             }
             
             $lockedProduct->save();
@@ -249,7 +263,9 @@ class ProductController extends Controller
             $query->where('verification_status', $request->verification_status);
         }
 
-        $products = $query->latest()->paginate(15);
+        $perPage = (int) $request->get('per_page', 15);
+        $perPage = max(1, min($perPage, 100));
+        $products = $query->latest()->paginate($perPage);
 
         return ProductListResource::collection($products);
     }

@@ -26,7 +26,7 @@ class SettingSeeder extends Seeder
             ['key' => 'maintenance_progress',      'value' => '0'],
             ['key' => 'banned_words_enabled',      'value' => '1'],
             ['key' => 'banned_words',              'value' => "vape\njudi\nnarkoba\nporno\nbokep\nsara\nktp\nijazah palsu\njoki tugas"],
-            ['key' => 'allowed_email_domains',     'value' => 'polines.ac.id'],
+            ['key' => 'allowed_email_domains',     'value' => ''],
         ];
 
         foreach ($settings as $setting) {
