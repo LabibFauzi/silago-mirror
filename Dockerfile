@@ -12,7 +12,7 @@ COPY . .
 RUN npm run build
 
 # Stage 2: aplikasi
-FROM php:8.3-apache
+FROM php:8.4-apache
 
 ENV APP_ENV=production \
     APP_DEBUG=false
