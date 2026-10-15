@@ -1,6 +1,6 @@
 # ============================================
 # Dockerfile Silago-Web di Render
-# Laravel 12 + PHP 8.3 + Apache + PostgreSQL
+# Laravel 12 + PHP 8.4 + Apache + PostgreSQL
 # ============================================
 
 # Stage 1: build asset frontend (Vite)

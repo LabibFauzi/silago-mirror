@@ -16,15 +16,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        // Alias middleware kustom SILAGO
         $middleware->alias([
             'user.active' => EnsureUserActive::class,
             'maintenance' => MaintenanceMode::class,
             'admin'       => EnsureAdmin::class,
             'admin.only'  => EnsureAdminOnly::class,
         ]);
+        $middleware->trustProxies(at: '*');
 
-        // Sanctum stateful API
         $middleware->statefulApi();
     })
     ->withExceptions(function (Exceptions $exceptions) {
