@@ -38,22 +38,42 @@ class SettingController extends Controller
 
         try {
             DB::transaction(function () use ($request) {
-                $keys = [
-                    'app_name', 'support_email', 'max_photos', 'listing_active_days',
-                    'session_timeout_minutes', 'maintenance_mode',
-                    'banned_words_enabled', 'banned_words'
-                ];
-
-                foreach ($keys as $key) {
-                    if ($request->has($key)) {
-                        $this->settingService->set($key, $request->input($key));
+                if ($request->has('form_section')) {
+                    $section = $request->input('form_section');
+                    if ($section === 'general') {
+                        foreach (['app_name', 'support_email', 'max_photos', 'listing_active_days'] as $k) {
+                            if ($request->has($k)) {
+                                $this->settingService->set($k, $request->input($k));
+                            }
+                        }
+                    } elseif ($section === 'moderation') {
+                        $this->settingService->set('banned_words_enabled', $request->has('banned_words_enabled') ? '1' : '0');
+                        if ($request->has('banned_words')) {
+                            $this->settingService->set('banned_words', $request->input('banned_words'));
+                        }
+                    } elseif ($section === 'security') {
+                        if ($request->has('session_timeout_minutes')) {
+                            $this->settingService->set('session_timeout_minutes', $request->input('session_timeout_minutes'));
+                        }
+                    } elseif ($section === 'system') {
+                        $this->settingService->set('maintenance_mode', $request->has('maintenance_mode') ? '1' : '0');
                     }
-                }
+                } else {
+                    $keys = [
+                        'app_name', 'support_email', 'max_photos', 'listing_active_days',
+                        'session_timeout_minutes', 'banned_words'
+                    ];
 
-                // Handle unchecked checkboxes (browsers don't send them)
-                foreach (['maintenance_mode', 'banned_words_enabled'] as $checkbox) {
-                    if (!$request->has($checkbox)) {
-                        $this->settingService->set($checkbox, '0');
+                    foreach ($keys as $key) {
+                        if ($request->has($key)) {
+                            $this->settingService->set($key, $request->input($key));
+                        }
+                    }
+
+                    if ($request->has('has_checkboxes')) {
+                        foreach (['maintenance_mode', 'banned_words_enabled'] as $checkbox) {
+                            $this->settingService->set($checkbox, $request->has($checkbox) ? '1' : '0');
+                        }
                     }
                 }
 

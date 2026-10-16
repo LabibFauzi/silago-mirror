@@ -6,6 +6,7 @@
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
+        <input type="hidden" name="form_section" value="general">
         
         <div class="p-6">
             <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Pengaturan Umum</h3>
@@ -42,6 +43,7 @@
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
+        <input type="hidden" name="form_section" value="moderation">
         
         <div class="p-6">
             <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Moderasi Konten</h3>
@@ -72,6 +74,7 @@
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
+        <input type="hidden" name="form_section" value="security">
         
         <div class="p-6">
             <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Keamanan</h3>
@@ -91,27 +94,57 @@
         </div>
     </form>
 
-    <!-- Mode Maintenance -->
+    <!-- Mode Maintenance & Data Manager -->
     <form method="POST" action="{{ route('admin.settings.update') }}" class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
         @csrf
         @method('PUT')
+        <input type="hidden" name="form_section" value="system">
         
         <div class="p-6">
-            <h3 class="text-lg font-bold text-ink mb-4 pb-2 border-b border-line">Mode Sistem</h3>
+            <div class="flex items-center justify-between mb-4 pb-2 border-b border-line">
+                <h3 class="text-lg font-bold text-ink">Mode Sistem & Pemeliharaan</h3>
+                @if(($settings['maintenance_mode'] ?? '0') === '1')
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-100 text-red-700">
+                        <span class="h-2 w-2 rounded-full bg-red-600 animate-pulse"></span>
+                        Maintenance Aktif
+                    </span>
+                @else
+                    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700">
+                        <span class="h-2 w-2 rounded-full bg-green-600"></span>
+                        Normal (Publik Aktif)
+                    </span>
+                @endif
+            </div>
+
             <div class="space-y-4">
                 <div class="flex items-start">
                     <input type="checkbox" name="maintenance_mode" value="1" id="maintenance_mode" {{ ($settings['maintenance_mode'] ?? '0') === '1' ? 'checked' : '' }} class="mt-1 h-4 w-4 text-brand border-line rounded focus:ring-brand">
                     <div class="ml-3">
-                        <label for="maintenance_mode" class="text-sm font-medium text-ink">Mode Maintenance</label>
-                        <p class="text-xs text-muted">Aktifkan untuk menonaktifkan akses pengguna sementara</p>
+                        <label for="maintenance_mode" class="text-sm font-medium text-ink">Aktifkan Mode Maintenance</label>
+                        <p class="text-xs text-muted">Ketika aktif, semua request publik/API akan dikunci (503 Service Unavailable). Admin dapat mengakses fitur khusus <strong>Data Manager</strong> untuk mengelola (Create, Edit, Delete) semua tabel database secara langsung.</p>
                     </div>
                 </div>
+
+                @if(($settings['maintenance_mode'] ?? '0') === '1')
+                    <div class="p-4 rounded-xl border border-red-200 bg-red-50 flex flex-wrap items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <span class="text-2xl">🛠️</span>
+                            <div>
+                                <p class="text-sm font-semibold text-red-800">Fitur Data Manager Terbuka</p>
+                                <p class="text-xs text-red-700">Anda dapat melihat, menambah, mengubah, dan menghapus record di seluruh 15 tabel database.</p>
+                            </div>
+                        </div>
+                        <a href="{{ route('admin.data-manager.index') }}" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
+                            Buka Data Manager &rarr;
+                        </a>
+                    </div>
+                @endif
             </div>
         </div>
 
         <div class="px-6 py-4 bg-gray-50 border-t border-line flex justify-end">
             <button type="submit" class="bg-brand hover:bg-green-700 text-white font-medium py-2 px-6 rounded-lg shadow-sm transition-colors">
-                Simpan Pengaturan
+                Simpan Mode Sistem
             </button>
         </div>
     </form>

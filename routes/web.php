@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\DataManagerController;
 use App\Http\Controllers\Admin\VerificationController;
 use App\Http\Controllers\Admin\ReportController;
 use App\Http\Controllers\Admin\UserController;
@@ -60,5 +61,15 @@ Route::prefix('admin')->name('admin.')->group(function() {
         Route::get('/settings', [SettingController::class, 'index'])->name('settings.index');
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
         Route::put('/settings', [SettingController::class, 'update']);
+
+        // Data Manager — hanya saat maintenance mode aktif + admin only
+        Route::middleware(['maintenance.active'])->prefix('data-manager')->name('data-manager.')->group(function () {
+            Route::get('/', [DataManagerController::class, 'index'])->name('index');
+            Route::get('/{table}', [DataManagerController::class, 'table'])->name('table');
+            Route::get('/{table}/{id}/json', [DataManagerController::class, 'show'])->name('show');
+            Route::post('/{table}', [DataManagerController::class, 'store'])->name('store');
+            Route::put('/{table}/{id}', [DataManagerController::class, 'update'])->name('update');
+            Route::delete('/{table}/{id}', [DataManagerController::class, 'destroy'])->name('destroy');
+        });
     });
 });
