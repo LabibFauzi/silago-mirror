@@ -18,7 +18,7 @@
                     <label class="block text-sm font-medium text-ink mb-1">Email Dukungan</label>
                     <input type="email" name="support_email" value="{{ $settings['support_email'] ?? 'support@silago.id' }}" class="w-full p-2 border border-line rounded-lg focus:ring-brand focus:border-brand">
                 </div>
-                <div class="grid grid-cols-2 gap-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                         <label class="block text-sm font-medium text-ink mb-1">Maksimal Foto Barang</label>
                         <input type="number" name="max_photos" value="{{ $settings['max_photos'] ?? 5 }}" min="1" max="10" class="w-full p-2 border border-line rounded-lg focus:ring-brand focus:border-brand">

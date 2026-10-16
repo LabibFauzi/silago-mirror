@@ -18,13 +18,13 @@
 </div>
 
 <div class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
-    <div class="border-b border-line px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="border-b border-line px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap gap-2">
             <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('status') || request('status') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
             <a href="?status=available" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'available' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Tersedia</a>
             <a href="?status=out" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'out' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Habis</a>
         </div>
-        <form method="GET" action="" class="w-72">
+        <form method="GET" action="" class="w-full sm:w-72">
             <input type="hidden" name="status" value="{{ request('status', '') }}">
             <input type="text" name="q" placeholder="Cari barang / penjual / kategori..." class="w-full px-4 py-2 border border-line rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" value="{{ request('q', '') }}">
         </form>

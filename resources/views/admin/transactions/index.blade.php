@@ -3,14 +3,14 @@
 
 @section('content')
 <div class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
-    <div class="border-b border-line px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="border-b border-line px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap gap-2">
             <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('status') || request('status') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
             <a href="?status=berjalan" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'berjalan' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Berjalan</a>
             <a href="?status=selesai" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'selesai' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Selesai</a>
             <a href="?status=canceled" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'canceled' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Dibatalkan</a>
         </div>
-        <form method="GET" action="" class="w-72">
+        <form method="GET" action="" class="w-full sm:w-72">
             <input type="hidden" name="status" value="{{ request('status', '') }}">
             <input type="text" name="q" placeholder="Cari ID / pembeli / penjual / barang..." class="w-full px-4 py-2 border border-line rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" value="{{ request('q', '') }}">
         </form>

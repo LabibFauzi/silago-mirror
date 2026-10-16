@@ -13,9 +13,7 @@ use App\Http\Controllers\Admin\CodPointController;
 use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\SettingController;
 
-Route::get('/', function () {
-    return view('welcome');
-});
+Route::redirect('/', '/admin/login');
 
 Route::prefix('admin')->name('admin.')->group(function() {
     // Guest

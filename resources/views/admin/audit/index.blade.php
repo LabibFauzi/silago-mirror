@@ -3,7 +3,7 @@
 
 @section('content')
 <div class="bg-white rounded-xl border border-line shadow-sm overflow-hidden" x-data="{ showModal: false, selectedLog: null }">
-    <div class="border-b border-line px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+    <div class="border-b border-line px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
         <div class="flex flex-wrap gap-2">
             <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('category') || request('category') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
             <a href="?category=pengguna" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('category') === 'pengguna' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Pengguna</a>
@@ -13,7 +13,7 @@
             <a href="?category=pengaturan" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('category') === 'pengaturan' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Pengaturan</a>
             <a href="?category=sistem" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('category') === 'sistem' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Sistem</a>
         </div>
-        <form method="GET" action="" class="w-72">
+        <form method="GET" action="" class="w-full sm:w-72">
             <input type="hidden" name="category" value="{{ request('category', '') }}">
             <input type="text" name="q" placeholder="Cari tindakan / admin..." class="w-full px-4 py-2 border border-line rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" value="{{ request('q', '') }}">
         </form>
