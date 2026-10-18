@@ -121,7 +121,7 @@
                     <input type="checkbox" name="maintenance_mode" value="1" id="maintenance_mode" {{ ($settings['maintenance_mode'] ?? '0') === '1' ? 'checked' : '' }} class="mt-1 h-4 w-4 text-brand border-line rounded focus:ring-brand">
                     <div class="ml-3">
                         <label for="maintenance_mode" class="text-sm font-medium text-ink">Aktifkan Mode Maintenance</label>
-                        <p class="text-xs text-muted">Ketika aktif, semua request publik/API akan dikunci (503 Service Unavailable). Admin dapat mengakses fitur khusus <strong>Data Manager</strong> untuk mengelola (Create, Edit, Delete) semua tabel database secara langsung.</p>
+                        <p class="text-xs text-muted">Ketika aktif, semua request publik/API akan dikunci (503 Service Unavailable). Admin dapat melakukan operasi penuh (Tambah, Ubah, Hapus) langsung pada masing-masing halaman tabel (Stok Barang, Pengguna, Transaksi, dll.).</p>
                     </div>
                 </div>
 
@@ -130,13 +130,18 @@
                         <div class="flex items-center gap-3">
                             <span class="text-2xl">🛠️</span>
                             <div>
-                                <p class="text-sm font-semibold text-red-800">Fitur Data Manager Terbuka</p>
-                                <p class="text-xs text-red-700">Anda dapat melihat, menambah, mengubah, dan menghapus record di seluruh 15 tabel database.</p>
+                                <p class="text-sm font-semibold text-red-800">Fitur CRUD Maintenance Aktif</p>
+                                <p class="text-xs text-red-700">Fitur Tambah, Edit, dan Hapus kini terbuka langsung di menu tabel masing-masing.</p>
                             </div>
                         </div>
-                        <a href="{{ route('admin.data-manager.index') }}" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-sm transition-colors">
-                            Buka Data Manager &rarr;
-                        </a>
+                        <div class="flex items-center gap-2">
+                            <a href="{{ route('admin.stock.index') }}" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition-colors">
+                                Kelola Stok &rarr;
+                            </a>
+                            <a href="{{ route('admin.users.index') }}" class="inline-flex items-center gap-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition-colors">
+                                Kelola Pengguna &rarr;
+                            </a>
+                        </div>
                     </div>
                 @endif
             </div>

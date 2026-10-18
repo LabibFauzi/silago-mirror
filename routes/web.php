@@ -36,13 +36,22 @@ Route::prefix('admin')->name('admin.')->group(function() {
         Route::post('/reports/{report}/dismiss', [ReportController::class, 'dismiss'])->name('reports.dismiss');
         
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users', [UserController::class, 'store'])->name('users.store');
+        Route::get('/users/{user}/json', [UserController::class, 'showJson'])->name('users.showJson');
         Route::get('/users/{user}', [UserController::class, 'show'])->name('users.show');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('users.destroy');
         Route::post('/users/{user}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
         Route::post('/users/{user}/activate', [UserController::class, 'activate'])->name('users.activate');
         
         Route::get('/stock', [StockController::class, 'index'])->name('stock.index');
+        Route::post('/stock', [StockController::class, 'store'])->name('stock.store');
+        Route::get('/stock/{product}/json', [StockController::class, 'showJson'])->name('stock.showJson');
+        Route::put('/stock/{product}', [StockController::class, 'update'])->name('stock.update');
+        Route::delete('/stock/{product}', [StockController::class, 'destroy'])->name('stock.destroy');
         
         Route::get('/transactions', [TransactionController::class, 'index'])->name('transactions.index');
+        Route::delete('/transactions/{deal}', [TransactionController::class, 'destroy'])->name('transactions.destroy');
         Route::get('/transactions/{deal}', [TransactionController::class, 'show'])->name('transactions.show');
         Route::post('/transactions/{deal}/support-buyer', [TransactionController::class, 'supportBuyer'])->name('transactions.supportBuyer');
         Route::post('/transactions/{deal}/support-seller', [TransactionController::class, 'supportSeller'])->name('transactions.supportSeller');
@@ -62,14 +71,9 @@ Route::prefix('admin')->name('admin.')->group(function() {
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
         Route::put('/settings', [SettingController::class, 'update']);
 
-        // Data Manager — hanya saat maintenance mode aktif + admin only
-        Route::middleware(['maintenance.active'])->prefix('data-manager')->name('data-manager.')->group(function () {
-            Route::get('/', [DataManagerController::class, 'index'])->name('index');
-            Route::get('/{table}', [DataManagerController::class, 'table'])->name('table');
-            Route::get('/{table}/{id}/json', [DataManagerController::class, 'show'])->name('show');
-            Route::post('/{table}', [DataManagerController::class, 'store'])->name('store');
-            Route::put('/{table}/{id}', [DataManagerController::class, 'update'])->name('update');
-            Route::delete('/{table}/{id}', [DataManagerController::class, 'destroy'])->name('destroy');
-        });
+        // Redirect URL lama data-manager langsung ke stok barang
+        Route::any('/data-manager{any}', function () {
+            return redirect()->route('admin.stock.index');
+        })->where('any', '.*');
     });
 });

@@ -57,26 +57,28 @@ class DataManagerController extends Controller
                 'profile_photo' => 'profile-photos',
             ],
             'rules_create' => [
-                'name'     => 'required|string|max:100',
-                'email'    => 'required|email|unique:users',
-                'nim'      => 'nullable|string|max:20|unique:users',
-                'username' => 'nullable|string|max:50|unique:users',
-                'password' => 'required|string|min:8',
-                'phone'    => 'nullable|string|max:30',
-                'role'     => 'required|in:user,moderator,admin',
-                'status'   => 'required|in:active,monitored,suspended',
-                'profile_photo' => 'nullable',
+                'name'           => 'required|string|max:100',
+                'email'          => 'required|email|unique:users,email',
+                'nim'            => 'nullable|string|max:20|unique:users,nim',
+                'username'       => 'nullable|string|max:50|unique:users,username',
+                'password'       => 'required|string|min:8',
+                'phone'          => 'nullable|string|max:30',
+                'role'           => 'required|in:user,moderator,admin',
+                'status'         => 'required|in:active,monitored,suspended',
+                'profile_photo'  => 'nullable',
+                'suspend_reason' => 'nullable|string|max:255',
             ],
             'rules_update' => [
-                'name'     => 'required|string|max:100',
-                'email'    => 'required|email',
-                'nim'      => 'nullable|string|max:20',
-                'username' => 'nullable|string|max:50',
-                'password' => 'nullable|string|min:8',
-                'phone'    => 'nullable|string|max:30',
-                'role'     => 'required|in:user,moderator,admin',
-                'status'   => 'required|in:active,monitored,suspended',
-                'profile_photo' => 'nullable',
+                'name'           => 'required|string|max:100',
+                'email'          => 'required|email',
+                'nim'            => 'nullable|string|max:20',
+                'username'       => 'nullable|string|max:50',
+                'password'       => 'nullable|string|min:8',
+                'phone'          => 'nullable|string|max:30',
+                'role'           => 'required|in:user,moderator,admin',
+                'status'         => 'required|in:active,monitored,suspended',
+                'profile_photo'  => 'nullable',
+                'suspend_reason' => 'nullable|string|max:255',
             ],
         ],
         'categories' => [
@@ -91,7 +93,7 @@ class DataManagerController extends Controller
             ],
             'rules_create' => [
                 'name' => 'required|string|max:100',
-                'slug' => 'required|string|max:100|unique:categories',
+                'slug' => 'required|string|max:100|unique:categories,slug',
                 'icon' => 'nullable',
             ],
             'rules_update' => [
@@ -106,24 +108,50 @@ class DataManagerController extends Controller
             'icon'       => '📦',
             'columns'    => ['id', 'name', 'price', 'stock', 'status', 'verification_status', 'seller_id', 'category_id', 'created_at'],
             'searchable' => ['name', 'description'],
-            'editable'   => ['seller_id', 'category_id', 'name', 'description', 'condition', 'specification', 'completeness', 'sell_reason', 'price', 'stock', 'is_negotiable', 'status', 'verification_status', 'verified_by', 'rejection_note', 'scan_result', 'scan_note', 'expires_at'],
+            'editable'   => [
+                'seller_id', 'category_id', 'name', 'price', 'stock', 'condition', 'is_negotiable',
+                'status', 'verification_status', 'verified_by', 'expires_at', 'description',
+                'specification', 'completeness', 'sell_reason', 'rejection_note', 'scan_result', 'scan_note'
+            ],
             'rules_create' => [
-                'seller_id'   => 'required|exists:users,id',
-                'category_id' => 'required|exists:categories,id',
-                'name'        => 'required|string|max:150',
-                'price'       => 'required|numeric|min:0',
-                'stock'       => 'required|integer|min:0',
-                'status'      => 'required|in:available,sold,hidden,archived',
+                'seller_id'           => 'required|exists:users,id',
+                'category_id'         => 'required|exists:categories,id',
+                'name'                => 'required|string|max:150',
+                'price'               => 'required|numeric|min:0',
+                'stock'               => 'required|integer|min:0',
+                'condition'           => 'nullable|string|max:50',
+                'is_negotiable'       => 'nullable|boolean',
+                'status'              => 'required|in:available,sold,hidden,archived',
                 'verification_status' => 'required|in:pending,verified,rejected',
+                'verified_by'         => 'nullable|exists:users,id',
+                'expires_at'          => 'nullable|date',
+                'description'         => 'nullable|string',
+                'specification'       => 'nullable|string',
+                'completeness'        => 'nullable|string|max:100',
+                'sell_reason'         => 'nullable|string',
+                'rejection_note'      => 'nullable|string',
+                'scan_result'         => 'nullable|string|max:50',
+                'scan_note'           => 'nullable|string|max:255',
             ],
             'rules_update' => [
-                'seller_id'   => 'required|exists:users,id',
-                'category_id' => 'required|exists:categories,id',
-                'name'        => 'required|string|max:150',
-                'price'       => 'required|numeric|min:0',
-                'stock'       => 'required|integer|min:0',
-                'status'      => 'required|in:available,sold,hidden,archived',
+                'seller_id'           => 'required|exists:users,id',
+                'category_id'         => 'required|exists:categories,id',
+                'name'                => 'required|string|max:150',
+                'price'               => 'required|numeric|min:0',
+                'stock'               => 'required|integer|min:0',
+                'condition'           => 'nullable|string|max:50',
+                'is_negotiable'       => 'nullable|boolean',
+                'status'              => 'required|in:available,sold,hidden,archived',
                 'verification_status' => 'required|in:pending,verified,rejected',
+                'verified_by'         => 'nullable|exists:users,id',
+                'expires_at'          => 'nullable|date',
+                'description'         => 'nullable|string',
+                'specification'       => 'nullable|string',
+                'completeness'        => 'nullable|string|max:100',
+                'sell_reason'         => 'nullable|string',
+                'rejection_note'      => 'nullable|string',
+                'scan_result'         => 'nullable|string|max:50',
+                'scan_note'           => 'nullable|string|max:255',
             ],
         ],
         'product_images' => [
@@ -194,13 +222,13 @@ class DataManagerController extends Controller
             'editable'   => ['product_id', 'buyer_id', 'seller_id'],
             'rules_create' => [
                 'product_id' => 'required|exists:products,id',
-                'buyer_id'   => 'required|exists:users,id',
-                'seller_id'  => 'required|exists:users,id',
+                'buyer_id'   => 'required|exists:users,id|different:seller_id',
+                'seller_id'  => 'required|exists:users,id|different:buyer_id',
             ],
             'rules_update' => [
                 'product_id' => 'required|exists:products,id',
-                'buyer_id'   => 'required|exists:users,id',
-                'seller_id'  => 'required|exists:users,id',
+                'buyer_id'   => 'required|exists:users,id|different:seller_id',
+                'seller_id'  => 'required|exists:users,id|different:buyer_id',
             ],
         ],
         'messages' => [
@@ -211,16 +239,32 @@ class DataManagerController extends Controller
             'searchable' => ['message'],
             'editable'   => ['conversation_id', 'sender_id', 'type', 'message', 'offer_price', 'offer_status', 'parent_offer_id', 'location_lat', 'location_lng', 'location_name', 'location_address', 'read_at'],
             'rules_create' => [
-                'conversation_id' => 'required|exists:conversations,id',
-                'sender_id'       => 'required|exists:users,id',
-                'type'            => 'required|in:text,offer,location,system',
-                'message'         => 'nullable|string',
+                'conversation_id'  => 'required|exists:conversations,id',
+                'sender_id'        => 'required|exists:users,id',
+                'type'             => 'required|in:text,offer,location,system',
+                'message'          => 'nullable|string',
+                'offer_price'      => 'nullable|numeric|min:0',
+                'offer_status'     => 'nullable|in:pending,accepted,rejected,countered',
+                'parent_offer_id'  => 'nullable|exists:messages,id',
+                'location_lat'     => 'nullable|numeric',
+                'location_lng'     => 'nullable|numeric',
+                'location_name'    => 'nullable|string|max:255',
+                'location_address' => 'nullable|string|max:255',
+                'read_at'          => 'nullable|date',
             ],
             'rules_update' => [
-                'conversation_id' => 'required|exists:conversations,id',
-                'sender_id'       => 'required|exists:users,id',
-                'type'            => 'required|in:text,offer,location,system',
-                'message'         => 'nullable|string',
+                'conversation_id'  => 'required|exists:conversations,id',
+                'sender_id'        => 'required|exists:users,id',
+                'type'             => 'required|in:text,offer,location,system',
+                'message'          => 'nullable|string',
+                'offer_price'      => 'nullable|numeric|min:0',
+                'offer_status'     => 'nullable|in:pending,accepted,rejected,countered',
+                'parent_offer_id'  => 'nullable|exists:messages,id',
+                'location_lat'     => 'nullable|numeric',
+                'location_lng'     => 'nullable|numeric',
+                'location_name'    => 'nullable|string|max:255',
+                'location_address' => 'nullable|string|max:255',
+                'read_at'          => 'nullable|date',
             ],
         ],
         'marketplace_deals' => [
@@ -229,23 +273,44 @@ class DataManagerController extends Controller
             'icon'       => '🤝',
             'columns'    => ['id', 'product_id', 'buyer_id', 'seller_id', 'agreed_price', 'quantity', 'status', 'created_at'],
             'searchable' => [],
-            'editable'   => ['conversation_id', 'accepted_message_id', 'product_id', 'buyer_id', 'seller_id', 'quantity', 'agreed_price', 'payment_method', 'status', 'agreed_at', 'completed_at', 'cancelled_at', 'cancelled_by', 'cancel_reason', 'cancel_note'],
+            'editable'   => [
+                'conversation_id', 'product_id', 'buyer_id', 'seller_id', 'quantity',
+                'agreed_price', 'payment_method', 'status', 'accepted_message_id',
+                'agreed_at', 'completed_at', 'cancelled_at', 'cancelled_by', 'cancel_reason', 'cancel_note'
+            ],
             'rules_create' => [
-                'conversation_id' => 'required|exists:conversations,id',
-                'product_id'      => 'required|exists:products,id',
-                'buyer_id'        => 'required|exists:users,id',
-                'seller_id'       => 'required|exists:users,id',
-                'agreed_price'    => 'required|numeric|min:0',
-                'quantity'        => 'required|integer|min:1',
-                'status'          => 'required|in:agreed,completed,cancelled',
+                'conversation_id'     => 'required|exists:conversations,id',
+                'product_id'          => 'required|exists:products,id',
+                'buyer_id'            => 'required|exists:users,id|different:seller_id',
+                'seller_id'           => 'required|exists:users,id|different:buyer_id',
+                'quantity'            => 'required|integer|min:1',
+                'agreed_price'        => 'required|numeric|min:0',
+                'payment_method'      => 'nullable|string|max:50',
+                'status'              => 'required|in:agreed,completed,cancelled',
+                'accepted_message_id' => 'nullable|exists:messages,id',
+                'agreed_at'           => 'nullable|date',
+                'completed_at'        => 'nullable|date',
+                'cancelled_at'        => 'nullable|date',
+                'cancelled_by'        => 'nullable|exists:users,id',
+                'cancel_reason'       => 'nullable|string|max:255',
+                'cancel_note'         => 'nullable|string',
             ],
             'rules_update' => [
-                'product_id'   => 'required|exists:products,id',
-                'buyer_id'     => 'required|exists:users,id',
-                'seller_id'    => 'required|exists:users,id',
-                'agreed_price' => 'required|numeric|min:0',
-                'quantity'     => 'required|integer|min:1',
-                'status'       => 'required|in:agreed,completed,cancelled',
+                'conversation_id'     => 'required|exists:conversations,id',
+                'product_id'          => 'required|exists:products,id',
+                'buyer_id'            => 'required|exists:users,id|different:seller_id',
+                'seller_id'           => 'required|exists:users,id|different:buyer_id',
+                'quantity'            => 'required|integer|min:1',
+                'agreed_price'        => 'required|numeric|min:0',
+                'payment_method'      => 'nullable|string|max:50',
+                'status'              => 'required|in:agreed,completed,cancelled',
+                'accepted_message_id' => 'nullable|exists:messages,id',
+                'agreed_at'           => 'nullable|date',
+                'completed_at'        => 'nullable|date',
+                'cancelled_at'        => 'nullable|date',
+                'cancelled_by'        => 'nullable|exists:users,id',
+                'cancel_reason'       => 'nullable|string|max:255',
+                'cancel_note'         => 'nullable|string',
             ],
         ],
         'reviews' => [
@@ -257,15 +322,15 @@ class DataManagerController extends Controller
             'editable'   => ['marketplace_deal_id', 'reviewer_id', 'reviewee_id', 'rating', 'comment'],
             'rules_create' => [
                 'marketplace_deal_id' => 'required|exists:marketplace_deals,id',
-                'reviewer_id'         => 'required|exists:users,id',
-                'reviewee_id'         => 'required|exists:users,id',
+                'reviewer_id'         => 'required|exists:users,id|different:reviewee_id',
+                'reviewee_id'         => 'required|exists:users,id|different:reviewer_id',
                 'rating'              => 'required|integer|between:1,5',
                 'comment'             => 'nullable|string|max:1000',
             ],
             'rules_update' => [
                 'marketplace_deal_id' => 'required|exists:marketplace_deals,id',
-                'reviewer_id'         => 'required|exists:users,id',
-                'reviewee_id'         => 'required|exists:users,id',
+                'reviewer_id'         => 'required|exists:users,id|different:reviewee_id',
+                'reviewee_id'         => 'required|exists:users,id|different:reviewer_id',
                 'rating'              => 'required|integer|between:1,5',
                 'comment'             => 'nullable|string|max:1000',
             ],
@@ -276,16 +341,36 @@ class DataManagerController extends Controller
             'icon'       => '🚨',
             'columns'    => ['id', 'reporter_id', 'reported_user_id', 'reason', 'status', 'resolution', 'created_at'],
             'searchable' => ['reason', 'description'],
-            'editable'   => ['reporter_id', 'reported_user_id', 'marketplace_deal_id', 'product_id', 'reason', 'description', 'status', 'resolution', 'admin_note', 'reviewed_by', 'reviewed_at'],
+            'editable'   => [
+                'reporter_id', 'reason', 'status', 'reported_user_id', 'product_id',
+                'marketplace_deal_id', 'resolution', 'reviewed_by', 'reviewed_at',
+                'description', 'admin_note'
+            ],
             'rules_create' => [
-                'reporter_id' => 'required|exists:users,id',
-                'reason'      => 'required|string|max:100',
-                'status'      => 'required|in:pending,reviewed,resolved,dismissed',
+                'reporter_id'         => 'required|exists:users,id',
+                'reason'              => 'required|string|max:100',
+                'status'              => 'required|in:pending,reviewed,resolved,dismissed',
+                'reported_user_id'    => 'nullable|exists:users,id',
+                'product_id'          => 'nullable|exists:products,id',
+                'marketplace_deal_id' => 'nullable|exists:marketplace_deals,id',
+                'resolution'          => 'nullable|string|max:50',
+                'reviewed_by'         => 'nullable|exists:users,id',
+                'reviewed_at'         => 'nullable|date',
+                'description'         => 'nullable|string',
+                'admin_note'          => 'nullable|string',
             ],
             'rules_update' => [
-                'reporter_id' => 'required|exists:users,id',
-                'reason'      => 'required|string|max:100',
-                'status'      => 'required|in:pending,reviewed,resolved,dismissed',
+                'reporter_id'         => 'required|exists:users,id',
+                'reason'              => 'required|string|max:100',
+                'status'              => 'required|in:pending,reviewed,resolved,dismissed',
+                'reported_user_id'    => 'nullable|exists:users,id',
+                'product_id'          => 'nullable|exists:products,id',
+                'marketplace_deal_id' => 'nullable|exists:marketplace_deals,id',
+                'resolution'          => 'nullable|string|max:50',
+                'reviewed_by'         => 'nullable|exists:users,id',
+                'reviewed_at'         => 'nullable|date',
+                'description'         => 'nullable|string',
+                'admin_note'          => 'nullable|string',
             ],
         ],
         'notifications' => [
@@ -296,16 +381,20 @@ class DataManagerController extends Controller
             'searchable' => ['title', 'body'],
             'editable'   => ['user_id', 'title', 'body', 'type', 'reference_id', 'is_read'],
             'rules_create' => [
-                'user_id' => 'required|exists:users,id',
-                'title'   => 'required|string|max:150',
-                'body'    => 'nullable|string|max:255',
-                'type'    => 'nullable|string|max:50',
+                'user_id'      => 'required|exists:users,id',
+                'title'        => 'required|string|max:150',
+                'body'         => 'nullable|string|max:255',
+                'type'         => 'nullable|string|max:50',
+                'reference_id' => 'nullable|string|max:100',
+                'is_read'      => 'nullable|boolean',
             ],
             'rules_update' => [
-                'user_id' => 'required|exists:users,id',
-                'title'   => 'required|string|max:150',
-                'body'    => 'nullable|string|max:255',
-                'type'    => 'nullable|string|max:50',
+                'user_id'      => 'required|exists:users,id',
+                'title'        => 'required|string|max:150',
+                'body'         => 'nullable|string|max:255',
+                'type'         => 'nullable|string|max:50',
+                'reference_id' => 'nullable|string|max:100',
+                'is_read'      => 'nullable|boolean',
             ],
         ],
         'admin_audit_logs' => [
@@ -316,12 +405,20 @@ class DataManagerController extends Controller
             'searchable' => ['action', 'target', 'note'],
             'editable'   => ['admin_id', 'category', 'action', 'target', 'note', 'meta'],
             'rules_create' => [
+                'admin_id' => 'nullable|exists:users,id',
                 'category' => 'required|string|max:30',
                 'action'   => 'required|string|max:100',
+                'target'   => 'nullable|string|max:255',
+                'note'     => 'nullable|string',
+                'meta'     => 'nullable',
             ],
             'rules_update' => [
+                'admin_id' => 'nullable|exists:users,id',
                 'category' => 'required|string|max:30',
                 'action'   => 'required|string|max:100',
+                'target'   => 'nullable|string|max:255',
+                'note'     => 'nullable|string',
+                'meta'     => 'nullable',
             ],
         ],
         'settings' => [
@@ -349,14 +446,20 @@ class DataManagerController extends Controller
             'searchable' => ['title', 'body'],
             'editable'   => ['title', 'body', 'audience', 'created_by', 'scheduled_at', 'sent_at'],
             'rules_create' => [
-                'title'    => 'required|string|max:150',
-                'body'     => 'required|string',
-                'audience' => 'nullable|in:all,user,admin',
+                'title'        => 'required|string|max:150',
+                'body'         => 'required|string',
+                'audience'     => 'nullable|in:all,user,admin',
+                'created_by'   => 'required|exists:users,id',
+                'scheduled_at' => 'nullable|date',
+                'sent_at'      => 'nullable|date',
             ],
             'rules_update' => [
-                'title'    => 'required|string|max:150',
-                'body'     => 'required|string',
-                'audience' => 'nullable|in:all,user,admin',
+                'title'        => 'required|string|max:150',
+                'body'         => 'required|string',
+                'audience'     => 'nullable|in:all,user,admin',
+                'created_by'   => 'required|exists:users,id',
+                'scheduled_at' => 'nullable|date',
+                'sent_at'      => 'nullable|date',
             ],
         ],
     ];
@@ -391,6 +494,23 @@ class DataManagerController extends Controller
 
         $query = $modelClass::query();
 
+        // Eager load relasi penting untuk tampilan tabel agar ramah dibaca
+        $relationsToEagerLoad = [
+            'products'          => ['seller:id,name', 'category:id,name'],
+            'product_images'    => ['product:id,name'],
+            'favorites'         => ['user:id,name', 'product:id,name'],
+            'conversations'     => ['product:id,name', 'buyer:id,name', 'seller:id,name'],
+            'marketplace_deals' => ['product:id,name', 'buyer:id,name', 'seller:id,name'],
+            'reviews'           => ['reviewer:id,name', 'reviewee:id,name'],
+            'reports'           => ['reporter:id,name', 'reportedUser:id,name', 'product:id,name'],
+            'notifications'     => ['user:id,name'],
+            'announcements'     => ['creator:id,name'],
+        ];
+
+        if (isset($relationsToEagerLoad[$table])) {
+            $query->with($relationsToEagerLoad[$table]);
+        }
+
         // Pencarian
         if ($search = $request->input('q')) {
             $query->where(function ($q) use ($search, $config) {
@@ -420,9 +540,12 @@ class DataManagerController extends Controller
             'icon'  => $cfg['icon'],
         ]);
 
+        // Ambil opsi relasi untuk form dropdown yang user-friendly
+        $relationOptions = $this->getRelationOptionsForTable($table);
+
         return view('admin.data-manager.table', compact(
             'config', 'table', 'records', 'allColumns', 'tables',
-            'search', 'sortCol', 'sortDir', 'pk'
+            'relationOptions', 'search', 'sortCol', 'sortDir', 'pk'
         ));
     }
 
@@ -442,6 +565,18 @@ class DataManagerController extends Controller
             if (!empty($data[$imgField])) {
                 $path = $data[$imgField];
                 $data[$imgField . '_url'] = str_starts_with($path, 'http') ? $path : Storage::disk('public')->url($path);
+            }
+        }
+
+        // Normalisasi format datetime untuk input type="datetime-local" (YYYY-MM-DDTHH:mm)
+        foreach ($data as $key => $val) {
+            if ($val && (str_ends_with($key, '_at') || in_array($key, ['expires_at', 'scheduled_at', 'sent_at']))) {
+                try {
+                    $data[$key] = \Carbon\Carbon::parse($val)->format('Y-m-d\TH:i');
+                } catch (\Throwable) {}
+            }
+            if (is_bool($val)) {
+                $data[$key] = $val ? 1 : 0;
             }
         }
 
@@ -466,7 +601,29 @@ class DataManagerController extends Controller
             }
         }
 
-        $data = $request->validate($rules);
+        $validator = validator(
+            $request->all(),
+            $rules,
+            $this->validationMessages(),
+            $this->customAttributes()
+        );
+
+        $data = $validator->validate();
+
+        // Tangkap semua field editable yang dikirim
+        foreach ($config['editable'] as $field) {
+            if ($request->has($field) && !isset($data[$field]) && !array_key_exists($field, $imageFields)) {
+                $val = $request->input($field);
+                $data[$field] = ($val === '' || $val === null) ? null : $val;
+            }
+        }
+
+        // Bersihkan string kosong pada nilai nullable menjadi null
+        foreach ($data as $k => $v) {
+            if ($v === '') {
+                $data[$k] = null;
+            }
+        }
 
         // Upload file gambar jika ada
         foreach ($imageFields as $field => $folder) {
@@ -484,21 +641,11 @@ class DataManagerController extends Controller
             $data['password'] = Hash::make($data['password']);
         }
 
-        // Tangkap semua field editable yang dikirim (termasuk yang nullable tanpa rules)
-        foreach ($config['editable'] as $field) {
-            if ($request->has($field) && !isset($data[$field]) && !array_key_exists($field, $imageFields)) {
-                $data[$field] = $request->input($field);
-            }
-        }
-
-        // Khusus users: password sudah di-hash di atas
-        if ($table === 'users' && isset($data['password']) && !str_starts_with($data['password'], '$2y$')) {
-            $data['password'] = Hash::make($data['password']);
-        }
-
         try {
             DB::transaction(function () use ($config, $data, $table) {
-                $record = $config['model']::create($data);
+                $modelClass = $config['model'];
+                $record = new $modelClass();
+                $record->forceFill($data)->save();
 
                 $this->auditLogService->log(
                     'data_manager',
@@ -551,8 +698,30 @@ class DataManagerController extends Controller
             }
         }
 
-        $data = $request->validate($rules);
+        $validator = validator(
+            $request->all(),
+            $rules,
+            $this->validationMessages(),
+            $this->customAttributes()
+        );
+
+        $data = $validator->validate();
         $record = $config['model']::where($pk, $id)->firstOrFail();
+
+        // Tangkap field editable tambahan
+        foreach ($config['editable'] as $field) {
+            if ($request->has($field) && !isset($data[$field]) && !array_key_exists($field, $imageFields)) {
+                $val = $request->input($field);
+                $data[$field] = ($val === '' || $val === null) ? null : $val;
+            }
+        }
+
+        // Bersihkan string kosong pada nilai nullable menjadi null
+        foreach ($data as $k => $v) {
+            if ($v === '') {
+                $data[$k] = null;
+            }
+        }
 
         // Upload file gambar baru jika ada
         foreach ($imageFields as $field => $folder) {
@@ -568,8 +737,8 @@ class DataManagerController extends Controller
                 $filename = Str::uuid() . '.' . $ext;
                 $path = $file->storeAs($folder, $filename, 'public');
                 $data[$field] = $path;
-            } elseif (!$request->filled($field)) {
-                // Jika tidak ada upload file baru dan field tidak diisi teks, pertahankan gambar lama
+            } elseif (!$request->filled($field) && !array_key_exists($field, $data)) {
+                // Pertahankan gambar lama jika tidak diupload baru
                 unset($data[$field]);
             }
         }
@@ -583,23 +752,10 @@ class DataManagerController extends Controller
             }
         }
 
-        // Tangkap field editable tambahan
-        foreach ($config['editable'] as $field) {
-            if ($request->has($field) && !isset($data[$field]) && !array_key_exists($field, $imageFields)) {
-                $data[$field] = $request->input($field);
-            }
-        }
-
         try {
             DB::transaction(function () use ($config, $data, $table, $record) {
                 $old = $record->toArray();
-
-                // Untuk User: gunakan forceFill agar role, status, dll bisa diubah
-                if ($table === 'users') {
-                    $record->forceFill($data)->save();
-                } else {
-                    $record->update($data);
-                }
+                $record->forceFill($data)->save();
 
                 $this->auditLogService->log(
                     'data_manager',
@@ -618,6 +774,187 @@ class DataManagerController extends Controller
                 ->withInput()
                 ->with('error', "Gagal mengubah data: {$e->getMessage()}");
         }
+    }
+
+    /**
+     * Ambil opsi relasi untuk form dropdown yang user-friendly.
+     */
+    public function getRelationOptionsForTable(string $table): array
+    {
+        $config = self::TABLE_REGISTRY[$table];
+        $fields = $config['editable'];
+        $options = [];
+
+        $userFields = ['seller_id', 'buyer_id', 'user_id', 'sender_id', 'reviewer_id', 'reviewee_id', 'reporter_id', 'reported_user_id', 'reviewed_by', 'verified_by', 'cancelled_by', 'admin_id', 'created_by'];
+
+        $needsUsers = array_intersect($fields, $userFields);
+        if (!empty($needsUsers)) {
+            $users = User::orderBy('name')->get(['id', 'name', 'email', 'nim', 'role'])->map(fn ($u) => [
+                'value' => (string) $u->id,
+                'label' => "#{$u->id} - {$u->name} (" . ($u->nim ? "NIM: {$u->nim} | " : '') . "{$u->email} - {$u->role})",
+            ])->all();
+
+            foreach ($needsUsers as $uf) {
+                $options[$uf] = $users;
+            }
+        }
+
+        if (in_array('category_id', $fields)) {
+            $options['category_id'] = Category::orderBy('name')->get(['id', 'name'])->map(fn ($c) => [
+                'value' => (string) $c->id,
+                'label' => "#{$c->id} - {$c->name}",
+            ])->all();
+        }
+
+        if (in_array('product_id', $fields)) {
+            $options['product_id'] = Product::with('seller:id,name')->latest('id')->take(300)->get(['id', 'name', 'price', 'seller_id'])->map(fn ($p) => [
+                'value' => (string) $p->id,
+                'label' => "#{$p->id} - {$p->name} (Rp" . number_format((float) $p->price, 0, ',', '.') . ($p->seller ? " | Penjual: " . $p->seller->name : "") . ")",
+            ])->all();
+        }
+
+        if (in_array('conversation_id', $fields)) {
+            $options['conversation_id'] = Conversation::with(['product:id,name', 'buyer:id,name', 'seller:id,name'])->latest('id')->take(200)->get()->map(fn ($cv) => [
+                'value' => (string) $cv->id,
+                'label' => "#{$cv->id} - " . ($cv->product->name ?? "Produk #{$cv->product_id}") . " (Pembeli: " . ($cv->buyer->name ?? "#{$cv->buyer_id}") . " | Penjual: " . ($cv->seller->name ?? "#{$cv->seller_id}") . ")",
+            ])->all();
+        }
+
+        if (in_array('marketplace_deal_id', $fields)) {
+            $options['marketplace_deal_id'] = MarketplaceDeal::with(['product:id,name', 'buyer:id,name'])->latest('id')->take(200)->get()->map(fn ($d) => [
+                'value' => (string) $d->id,
+                'label' => "#{$d->id} - " . ($d->product->name ?? "Produk #{$d->product_id}") . " (Rp" . number_format((float) $d->agreed_price, 0, ',', '.') . " | Status: {$d->status})",
+            ])->all();
+        }
+
+        $messageFields = array_intersect($fields, ['accepted_message_id', 'parent_offer_id']);
+        if (!empty($messageFields)) {
+            $messages = Message::latest('id')->take(100)->get(['id', 'conversation_id', 'sender_id', 'type'])->map(fn ($m) => [
+                'value' => (string) $m->id,
+                'label' => "#{$m->id} - Pesan di Percakapan #{$m->conversation_id} (Pengirim #{$m->sender_id}, tipe: {$m->type})",
+            ])->all();
+
+            foreach ($messageFields as $mf) {
+                $options[$mf] = $messages;
+            }
+        }
+
+        return $options;
+    }
+
+    /**
+     * Pesan validasi kustom dalam bahasa Indonesia.
+     */
+    private function validationMessages(): array
+    {
+        return [
+            'required'  => ':attribute wajib diisi.',
+            'exists'    => ':attribute yang dipilih tidak valid atau tidak ditemukan di sistem.',
+            'unique'    => ':attribute sudah digunakan, silakan pilih nilai lain.',
+            'in'        => ':attribute yang dipilih tidak valid.',
+            'different' => ':attribute tidak boleh sama dengan :other.',
+            'min'       => ':attribute minimal :min karakter atau bernilai minimal :min.',
+            'max'       => ':attribute maksimal :max karakter.',
+            'numeric'   => ':attribute harus berupa angka numerik.',
+            'integer'   => ':attribute harus berupa bilangan bulat.',
+            'email'     => ':attribute harus berupa alamat email yang valid.',
+            'image'     => ':attribute harus berupa file gambar.',
+            'mimes'     => ':attribute harus berformat :values.',
+            'date'      => ':attribute harus berupa format tanggal dan waktu yang valid.',
+        ];
+    }
+
+    /**
+     * Pemetaan nama atribut ke label yang ramah pengguna.
+     */
+    private function customAttributes(): array
+    {
+        return [
+            'seller_id'           => 'Penjual',
+            'buyer_id'            => 'Pembeli',
+            'user_id'             => 'Pengguna',
+            'category_id'         => 'Kategori Barang',
+            'product_id'          => 'Barang',
+            'conversation_id'     => 'Percakapan',
+            'marketplace_deal_id' => 'Transaksi Deal',
+            'accepted_message_id' => 'Pesan Deal',
+            'parent_offer_id'     => 'Penawaran Induk',
+            'sender_id'           => 'Pengirim Pesan',
+            'reviewer_id'         => 'Pemberi Ulasan',
+            'reviewee_id'         => 'Penerima Ulasan',
+            'reporter_id'         => 'Pelapor',
+            'reported_user_id'    => 'Pengguna Terlapor',
+            'reviewed_by'         => 'Ditinjau Oleh',
+            'verified_by'         => 'Diverifikasi Oleh',
+            'cancelled_by'        => 'Dibatalkan Oleh',
+            'admin_id'            => 'Admin',
+            'created_by'          => 'Dibuat Oleh',
+            'name'                => 'Nama',
+            'email'               => 'Email',
+            'nim'                 => 'NIM',
+            'username'            => 'Username',
+            'password'            => 'Kata Sandi',
+            'phone'               => 'Nomor Telepon',
+            'role'                => 'Peran Pengguna',
+            'status'              => 'Status',
+            'verification_status' => 'Status Verifikasi',
+            'price'               => 'Harga',
+            'stock'               => 'Stok',
+            'rating'              => 'Rating',
+            'quantity'            => 'Jumlah Kuantitas',
+            'agreed_price'        => 'Harga Disepakati',
+            'reason'              => 'Alasan Laporan',
+            'title'               => 'Judul',
+            'body'                => 'Isi Pengumuman / Konten',
+            'slug'                => 'Slug URL',
+            'address'             => 'Alamat Titik COD',
+            'lat'                 => 'Latitude Koordinat',
+            'lng'                 => 'Longitude Koordinat',
+            'key'                 => 'Kunci Pengaturan',
+            'value'               => 'Nilai Pengaturan',
+            'condition'           => 'Kondisi Barang',
+            'description'         => 'Deskripsi',
+            'specification'       => 'Spesifikasi',
+            'completeness'        => 'Kelengkapan',
+            'sell_reason'         => 'Alasan Dijual',
+            'is_negotiable'       => 'Bisa Nego',
+            'rejection_note'      => 'Catatan Penolakan',
+            'scan_result'         => 'Hasil Scan',
+            'scan_note'           => 'Catatan Scan',
+            'expires_at'          => 'Waktu Kedaluwarsa',
+            'is_active'           => 'Status Aktif',
+            'type'                => 'Tipe',
+            'message'             => 'Isi Pesan',
+            'offer_price'         => 'Harga Penawaran',
+            'offer_status'        => 'Status Penawaran',
+            'location_name'       => 'Nama Lokasi',
+            'location_address'    => 'Alamat Lokasi',
+            'read_at'             => 'Waktu Dibaca',
+            'payment_method'      => 'Metode Pembayaran',
+            'agreed_at'           => 'Waktu Disepakati',
+            'completed_at'        => 'Waktu Selesai',
+            'cancelled_at'        => 'Waktu Dibatalkan',
+            'cancel_reason'       => 'Alasan Pembatalan',
+            'cancel_note'         => 'Catatan Pembatalan',
+            'comment'             => 'Ulasan / Komentar',
+            'resolution'          => 'Resolusi',
+            'admin_note'          => 'Catatan Admin',
+            'reviewed_at'         => 'Waktu Ditinjau',
+            'reference_id'        => 'ID Referensi',
+            'is_read'             => 'Sudah Dibaca',
+            'category'            => 'Kategori Log',
+            'action'              => 'Aksi Log',
+            'target'              => 'Target Log',
+            'note'                => 'Catatan',
+            'meta'                => 'Metadata JSON',
+            'audience'            => 'Target Penerima',
+            'scheduled_at'        => 'Jadwal Kirim',
+            'sent_at'             => 'Waktu Terkirim',
+            'profile_photo'       => 'Foto Profil',
+            'icon'                => 'Ikon Kategori',
+            'image_path'          => 'File Foto',
+            'sort_order'          => 'Urutan Tampilan',
+        ];
     }
 
     /**

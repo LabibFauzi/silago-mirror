@@ -51,11 +51,6 @@
 
     if (auth()->check() && auth()->user()->role === 'admin') {
         $menus[] = ['label' => 'Pengaturan', 'route' => 'admin.settings.index', 'active' => 'admin.settings.*', 'badge' => null, 'badgeClass' => '', 'icon' => 'M10.325 4.317a1.724 1.724 0 013.35 0 1.724 1.724 0 002.573 1.066 1.724 1.724 0 012.37 2.37 1.724 1.724 0 001.065 2.572 1.724 1.724 0 010 3.35 1.724 1.724 0 00-1.066 2.573 1.724 1.724 0 01-2.37 2.37 1.724 1.724 0 00-2.572 1.065 1.724 1.724 0 01-3.35 0 1.724 1.724 0 00-2.573-1.066 1.724 1.724 0 01-2.37-2.37 1.724 1.724 0 00-1.065-2.572 1.724 1.724 0 010-3.35 1.724 1.724 0 001.066-2.573 1.724 1.724 0 012.37-2.37 1.724 1.724 0 002.572-1.065zM15 12a3 3 0 11-6 0 3 3 0 016 0z'];
-
-        // Data Manager — hanya muncul saat maintenance mode aktif
-        if (app(\App\Services\SettingService::class)->getBool('maintenance_mode', false)) {
-            $menus[] = ['label' => 'Data Manager', 'route' => 'admin.data-manager.index', 'active' => 'admin.data-manager.*', 'badge' => 'MAINT', 'badgeClass' => 'bg-red-100 text-red-700', 'icon' => 'M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4'];
-        }
     }
 
     $userName = auth()->user()->name ?? 'Administrator';
@@ -100,8 +95,12 @@
 
         <div class="border-t border-line p-4">
             <div class="mb-3 flex items-center gap-3">
-                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft text-sm font-semibold text-brand">
-                    {{ strtoupper(mb_substr($userName, 0, 1)) }}
+                <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-soft text-sm font-semibold text-brand overflow-hidden border border-line">
+                    @if(auth()->check() && (auth()->user()->profile_photo || auth()->user()->avatar))
+                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ $userName }}" class="h-full w-full object-cover">
+                    @else
+                        {{ strtoupper(mb_substr($userName, 0, 1)) }}
+                    @endif
                 </div>
                 <div class="min-w-0">
                     <p class="truncate text-sm font-medium text-ink">{{ $userName }}</p>
@@ -138,8 +137,12 @@
             <h2 class="truncate text-base font-semibold text-ink sm:text-lg">@yield('title', 'Dashboard')</h2>
             <div class="ml-auto hidden items-center gap-3 sm:flex">
                 <span class="text-sm text-muted">{{ $userName }}</span>
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-soft text-xs font-semibold text-brand">
-                    {{ strtoupper(mb_substr($userName, 0, 1)) }}
+                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-soft text-xs font-semibold text-brand overflow-hidden border border-line">
+                    @if(auth()->check() && (auth()->user()->profile_photo || auth()->user()->avatar))
+                        <img src="{{ auth()->user()->avatar_url }}" alt="{{ $userName }}" class="h-full w-full object-cover">
+                    @else
+                        {{ strtoupper(mb_substr($userName, 0, 1)) }}
+                    @endif
                 </div>
             </div>
         </header>

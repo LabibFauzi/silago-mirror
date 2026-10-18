@@ -2,78 +2,455 @@
 @section('title', 'Stok Barang')
 
 @section('content')
-<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-    <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Total Barang</h3>
-        <div class="text-3xl font-bold text-ink">{{ number_format($allCount ?? 0, 0, ',', '.') }}</div>
-    </div>
-    <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Tersedia</h3>
-        <div class="text-3xl font-bold text-green-600">{{ number_format($availableCount ?? 0, 0, ',', '.') }}</div>
-    </div>
-    <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-        <h3 class="text-sm font-medium text-muted mb-2">Habis</h3>
-        <div class="text-3xl font-bold text-red-600">{{ number_format($outCount ?? 0, 0, ',', '.') }}</div>
-    </div>
-</div>
+@php
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag;
+@endphp
+<div x-data="stockManager()" class="space-y-6">
 
-<div class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
-    <div class="border-b border-line px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
-        <div class="flex flex-wrap gap-2">
-            <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('status') || request('status') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
-            <a href="?status=available" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'available' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Tersedia</a>
-            <a href="?status=out" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'out' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Habis</a>
+    {{-- Banner Notifikasi Mode Maintenance --}}
+    @if(!empty($isMaintenance))
+    <div class="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
+        <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 text-lg">🛠️</span>
+            <div>
+                <p class="text-sm font-bold text-red-800">Mode Maintenance Aktif — CRUD Barang Terbuka</p>
+                <p class="text-xs text-red-700">Anda dapat menambah, mengubah, dan menghapus data barang secara langsung di halaman ini.</p>
+            </div>
         </div>
-        <form method="GET" action="" class="w-full sm:w-72">
-            <input type="hidden" name="status" value="{{ request('status', '') }}">
-            <input type="text" name="q" placeholder="Cari barang / penjual / kategori..." class="w-full px-4 py-2 border border-line rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" value="{{ request('q', '') }}">
-        </form>
+        <button type="button" @click="openCreate()" class="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition-colors">
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+            Tambah Barang
+        </button>
+    </div>
+    @endif
+
+    {{-- Kartu Ringkasan Stok --}}
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
+            <h3 class="text-sm font-medium text-muted mb-2">Total Semua Barang</h3>
+            <div class="text-3xl font-bold text-ink">{{ number_format($allCount ?? 0, 0, ',', '.') }}</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
+            <h3 class="text-sm font-medium text-muted mb-2">Stok Tersedia</h3>
+            <div class="text-3xl font-bold text-green-600">{{ number_format($availableCount ?? 0, 0, ',', '.') }}</div>
+        </div>
+        <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
+            <h3 class="text-sm font-medium text-muted mb-2">Stok Habis</h3>
+            <div class="text-3xl font-bold text-red-600">{{ number_format($outCount ?? 0, 0, ',', '.') }}</div>
+        </div>
     </div>
 
-    <div class="overflow-x-auto">
-        <table class="w-full text-sm text-left">
-            <thead class="text-xs text-muted uppercase bg-page border-b border-line">
-                <tr>
-                    <th class="px-6 py-4">Barang</th>
-                    <th class="px-6 py-4">Penjual</th>
-                    <th class="px-6 py-4">Kategori</th>
-                    <th class="px-6 py-4">Deskripsi</th>
-                    <th class="px-6 py-4">Harga</th>
-                    <th class="px-6 py-4">Tanggal Posting</th>
-                    <th class="px-6 py-4">Stok</th>
-                </tr>
-            </thead>
-            <tbody>
-                @forelse($products ?? [] as $product)
-                <tr class="border-b border-line hover:bg-page">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center">
-                            <img src="{{ $product->image_url ?? 'https://via.placeholder.com/40' }}" alt="Foto" class="w-10 h-10 rounded-md object-cover mr-3">
-                            <div class="font-medium text-ink">{{ $product->name }}</div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">{{ $product->seller->name ?? '-' }}</td>
-                    <td class="px-6 py-4">{{ $product->category->name ?? '-' }}</td>
-                    <td class="px-6 py-4 max-w-xs truncate">{{ $product->description ?? '-' }}</td>
-                    <td class="px-6 py-4">Rp{{ number_format($product->price ?? 0, 0, ',', '.') }}</td>
-                    <td class="px-6 py-4">{{ $product->created_at ? $product->created_at->format('d M Y') : '-' }}</td>
-                    <td class="px-6 py-4 font-bold {{ $product->stock == 0 ? 'text-red-600' : 'text-green-600' }}">
-                        {{ $product->stock }}
-                    </td>
-                </tr>
-                @empty
-                <tr>
-                    <td colspan="7" class="px-6 py-8 text-center text-muted">Tidak ada barang</td>
-                </tr>
-                @endforelse
-            </tbody>
-        </table>
+    {{-- Tabel Barang --}}
+    <div class="bg-white rounded-xl border border-line shadow-sm overflow-hidden">
+        <div class="border-b border-line px-4 sm:px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+            <div class="flex flex-wrap gap-2">
+                <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('status') || request('status') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
+                <a href="?status=available" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'available' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Tersedia</a>
+                <a href="?status=out" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'out' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Habis</a>
+                <a href="?status=pending" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'pending' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Pending</a>
+            </div>
+            <form method="GET" action="" class="w-full sm:w-72">
+                <input type="hidden" name="status" value="{{ request('status', '') }}">
+                <input type="text" name="q" placeholder="Cari barang / penjual / kategori..." class="w-full px-4 py-2 border border-line rounded-lg text-sm focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand" value="{{ request('q', '') }}">
+            </form>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-left">
+                <thead class="text-xs text-muted uppercase bg-page border-b border-line">
+                    <tr>
+                        <th class="px-6 py-4">Barang</th>
+                        <th class="px-6 py-4">Penjual</th>
+                        <th class="px-6 py-4">Kategori</th>
+                        <th class="px-6 py-4">Harga</th>
+                        <th class="px-6 py-4">Stok</th>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Verifikasi</th>
+                        <th class="px-6 py-4">Tanggal Posting</th>
+                        @if(!empty($isMaintenance))
+                            <th class="px-6 py-4 text-right">Aksi</th>
+                        @endif
+                    </tr>
+                </thead>
+                <tbody>
+                    @forelse($products ?? [] as $product)
+                    <tr class="border-b border-line hover:bg-page transition-colors">
+                        <td class="px-6 py-4">
+                            <div class="flex items-center">
+                                <img src="{{ $product->image_url ?? 'https://via.placeholder.com/40' }}" 
+                                     alt="Foto" 
+                                     class="w-10 h-10 rounded-md object-cover mr-3 border border-line bg-gray-50"
+                                     onerror="this.src='https://via.placeholder.com/40'">
+                                <div>
+                                    <div class="font-medium text-ink">{{ $product->name }}</div>
+                                    <div class="text-[11px] text-faint">ID: #{{ $product->id }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="px-6 py-4 text-ink">{{ $product->seller->name ?? '-' }}</td>
+                        <td class="px-6 py-4 text-ink">{{ $product->category->name ?? '-' }}</td>
+                        <td class="px-6 py-4 font-semibold text-ink">Rp{{ number_format((float) ($product->price ?? 0), 0, ',', '.') }}</td>
+                        <td class="px-6 py-4 font-bold {{ $product->stock == 0 ? 'text-red-600' : 'text-green-600' }}">
+                            {{ $product->stock }}
+                        </td>
+                        <td class="px-6 py-4">
+                            @php
+                                $statusCls = match($product->status) {
+                                    'available' => 'bg-green-100 text-green-700',
+                                    'sold' => 'bg-blue-100 text-blue-700',
+                                    'hidden' => 'bg-gray-100 text-gray-700',
+                                    'archived' => 'bg-yellow-100 text-yellow-700',
+                                    default => 'bg-gray-100 text-gray-700'
+                                };
+                            @endphp
+                            <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium {{ $statusCls }}">{{ ucfirst($product->status) }}</span>
+                        </td>
+                        <td class="px-6 py-4">
+                            @php
+                                $verifCls = match($product->verification_status) {
+                                    'verified' => 'bg-green-100 text-green-700',
+                                    'pending' => 'bg-yellow-100 text-yellow-700',
+                                    'rejected' => 'bg-red-100 text-red-700',
+                                    default => 'bg-gray-100 text-gray-700'
+                                };
+                            @endphp
+                            <span class="inline-block rounded-full px-2.5 py-0.5 text-xs font-medium {{ $verifCls }}">{{ ucfirst($product->verification_status) }}</span>
+                        </td>
+                        <td class="px-6 py-4 text-muted text-xs">{{ $product->created_at ? $product->created_at->format('d M Y H:i') : '-' }}</td>
+                        
+                        @if(!empty($isMaintenance))
+                        <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                            <button @click="openEdit({{ $product->id }})" class="text-blue-600 hover:underline text-xs font-semibold">Ubah</button>
+                            <button @click="confirmDelete({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-red-600 hover:underline text-xs font-semibold">Hapus</button>
+                        </td>
+                        @endif
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="{{ !empty($isMaintenance) ? 9 : 8 }}" class="px-6 py-12 text-center text-muted">
+                            <div class="flex flex-col items-center gap-2">
+                                <svg class="h-10 w-10 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+                                <span>Tidak ada data barang</span>
+                            </div>
+                        </td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
+        </div>
+        
+        @if(isset($products) && method_exists($products, 'links'))
+        <div class="px-6 py-4 border-t border-line">
+            {{ $products->links() }}
+        </div>
+        @endif
     </div>
-    
-    @if(isset($products) && method_exists($products, 'links'))
-    <div class="px-6 py-4 border-t border-line">
-        {{ $products->links() }}
+
+    {{-- ═══════════ Modal Tambah / Ubah Barang (Mode Maintenance) ═══════════ --}}
+    @if(!empty($isMaintenance))
+    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="showModal" @click="closeModal()" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+
+            <div x-show="showModal" x-transition
+                 class="relative z-10 w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+
+                <form :action="formAction" method="POST" enctype="multipart/form-data" class="flex flex-col h-full max-h-[90vh]">
+                    @csrf
+                    <input type="hidden" name="_form_action" :value="formAction">
+                    <input type="hidden" name="_method" value="PUT" x-bind:disabled="!isEdit">
+
+                    {{-- Modal Header --}}
+                    <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-white shrink-0">
+                        <div>
+                            <h3 class="text-lg font-bold text-ink" x-text="isEdit ? 'Ubah Data Barang' : 'Tambah Barang Baru'"></h3>
+                            <p class="text-xs text-muted">Kelola data stok barang langsung saat Mode Maintenance aktif.</p>
+                        </div>
+                        <button type="button" @click="closeModal()" class="rounded-lg p-1.5 text-faint hover:bg-gray-100 hover:text-ink transition-colors">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    {{-- Modal Body --}}
+                    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
+                        {{-- Alert Error Validasi --}}
+                        @if($errors->any())
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+                            <div class="flex items-center gap-2 font-semibold text-red-800 text-sm mb-1.5">
+                                <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span>Gagal menyimpan data! Mohon periksa {{ $errors->count() }} kesalahan input:</span>
+                            </div>
+                            <ul class="list-disc pl-7 text-xs text-red-700 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            {{-- 1. Penjual (User Select) --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Penjual (User) <span class="text-red-500">*</span></label>
+                                <select name="seller_id" x-model="formData.seller_id"
+                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('seller_id') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                    <option value="">— Pilih Penjual —</option>
+                                    @foreach($sellers as $s)
+                                        <option value="{{ $s->id }}">#{{ $s->id }} - {{ $s->name }} ({{ $s->email }}{{ $s->nim ? ' / ' . $s->nim : '' }})</option>
+                                    @endforeach
+                                </select>
+                                @error('seller_id')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 2. Kategori (Category Select) --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kategori Barang <span class="text-red-500">*</span></label>
+                                <select name="category_id" x-model="formData.category_id"
+                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('category_id') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                    <option value="">— Pilih Kategori —</option>
+                                    @foreach($categories as $c)
+                                        <option value="{{ $c->id }}">#{{ $c->id }} - {{ $c->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('category_id')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 3. Nama Barang --}}
+                            <div class="sm:col-span-2">
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Nama Barang <span class="text-red-500">*</span></label>
+                                <input type="text" name="name" x-model="formData.name" placeholder="Contoh: Modul Kuliah Algoritma & Pemrograman"
+                                       class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('name') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                @error('name')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 4. Harga Barang --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Harga Barang (Rp) <span class="text-red-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-faint">Rp</span>
+                                    <input type="number" min="0" step="100" name="price" x-model="formData.price" placeholder="0"
+                                           class="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('price') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                </div>
+                                @error('price')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 5. Stok Barang --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Stok Barang <span class="text-red-500">*</span></label>
+                                <input type="number" min="0" step="1" name="stock" x-model="formData.stock" placeholder="1"
+                                       class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('stock') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                @error('stock')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 6. Kondisi Barang --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kondisi Barang</label>
+                                <select name="condition" x-model="formData.condition"
+                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand border-line">
+                                    <option value="">— Pilih Kondisi —</option>
+                                    <option value="Baru (BNIB)">Baru (BNIB - Segel Pabrik)</option>
+                                    <option value="Baru">Baru (Buka Segel / Belum Dipakai)</option>
+                                    <option value="Bekas Layak">Bekas Layak Pakai</option>
+                                    <option value="Bekas">Bekas (Minus Ringan / Pemakaian)</option>
+                                </select>
+                            </div>
+
+                            {{-- 7. Status Barang --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Status Barang <span class="text-red-500">*</span></label>
+                                <select name="status" x-model="formData.status"
+                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('status') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                    <option value="available">Available (Tersedia)</option>
+                                    <option value="sold">Sold (Terjual)</option>
+                                    <option value="hidden">Hidden (Disembunyikan)</option>
+                                    <option value="archived">Archived (Diarsipkan)</option>
+                                </select>
+                                @error('status')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 8. Status Verifikasi --}}
+                            <div class="sm:col-span-2">
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Status Verifikasi <span class="text-red-500">*</span></label>
+                                <select name="verification_status" x-model="formData.verification_status"
+                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('verification_status') border-red-500 bg-red-50/20 @else border-line @enderror">
+                                    <option value="verified">Verified (Terverifikasi & Langsung Tayang)</option>
+                                    <option value="pending">Pending (Menunggu Verifikasi)</option>
+                                    <option value="rejected">Rejected (Ditolak)</option>
+                                </select>
+                                @error('verification_status')
+                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                                @enderror
+                            </div>
+
+                            {{-- 9. Foto Barang --}}
+                            <div class="sm:col-span-2">
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Foto Barang</label>
+                                <div class="flex items-center gap-3">
+                                    <div class="h-16 w-16 rounded-xl border-2 border-line bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
+                                        <template x-if="photoPreview || formData.photo_url">
+                                            <img :src="photoPreview || formData.photo_url" class="h-full w-full object-cover" alt="Preview">
+                                        </template>
+                                        <template x-if="!photoPreview && !formData.photo_url">
+                                            <svg class="h-6 w-6 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+                                        </template>
+                                    </div>
+                                    <div class="flex-1 min-w-0">
+                                        <input type="file" name="photo" accept="image/*" @change="previewPhoto($event)"
+                                               class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border border-line rounded-lg p-1.5 bg-white">
+                                        <span class="text-[11px] text-faint mt-1 block">JPG, PNG, WEBP, SVG (Maksimal 5MB)</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {{-- 10. Deskripsi --}}
+                            <div class="sm:col-span-2">
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Deskripsi Lengkap</label>
+                                <textarea name="description" x-model="formData.description" rows="3" placeholder="Jelaskan detail barang..." class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"></textarea>
+                            </div>
+
+                            {{-- 11. Spesifikasi --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Spesifikasi (Opsional)</label>
+                                <textarea name="specification" x-model="formData.specification" rows="2" placeholder="Contoh: RAM 8GB, SSD 256GB..." class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"></textarea>
+                            </div>
+
+                            {{-- 12. Kelengkapan --}}
+                            <div>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kelengkapan (Opsional)</label>
+                                <input type="text" name="completeness" x-model="formData.completeness" placeholder="Contoh: Dus, Charger, Unit" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
+                            </div>
+
+                            {{-- 13. Alasan Dijual --}}
+                            <div class="sm:col-span-2">
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Alasan Dijual (Opsional)</label>
+                                <input type="text" name="sell_reason" x-model="formData.sell_reason" placeholder="Contoh: Sudah lulus / tidak terpakai lagi" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Modal Footer --}}
+                    <div class="flex justify-end gap-2 border-t border-line px-6 py-3.5 bg-gray-50/80 rounded-b-2xl shrink-0">
+                        <button type="button" @click="closeModal()" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted hover:bg-gray-200 transition-colors">Batal</button>
+                        <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors" x-text="isEdit ? 'Simpan Perubahan' : 'Tambah Barang'"></button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {{-- Modal Konfirmasi Hapus --}}
+    <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="showDeleteModal" @click="showDeleteModal = false" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+            <div x-show="showDeleteModal" x-transition class="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
+                <div class="flex flex-col items-center text-center">
+                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
+                        <svg class="h-7 w-7 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    </div>
+                    <h3 class="text-lg font-bold text-ink">Hapus Barang?</h3>
+                    <p class="mt-2 text-sm text-muted">
+                        Anda akan menghapus barang <strong x-text="deleteLabel" class="text-ink"></strong>.
+                        Tindakan ini tidak dapat dibatalkan.
+                    </p>
+                </div>
+                <form :action="deleteAction" method="POST" class="mt-6 flex justify-center gap-3">
+                    @csrf
+                    @method('DELETE')
+                    <button type="button" @click="showDeleteModal = false" class="rounded-lg bg-gray-100 px-5 py-2 text-sm font-medium text-muted hover:bg-gray-200">Batal</button>
+                    <button type="submit" class="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Ya, Hapus</button>
+                </form>
+            </div>
+        </div>
     </div>
     @endif
 </div>
+
+@push('scripts')
+<script>
+function stockManager() {
+    const hasErrors = {{ ($errors->any() || session('error')) && old('_form_action') ? 'true' : 'false' }};
+    const wasEdit = {{ old('_method') === 'PUT' ? 'true' : 'false' }};
+    const oldFormAction = @json(old('_form_action', ''));
+    const oldInputs = @json(old());
+
+    delete oldInputs._token;
+    delete oldInputs._method;
+    delete oldInputs._form_action;
+
+    return {
+        showModal: hasErrors,
+        showDeleteModal: false,
+        isEdit: wasEdit,
+        formAction: oldFormAction || (wasEdit ? '' : @json(route('admin.stock.store'))),
+        formData: hasErrors ? oldInputs : { status: 'available', verification_status: 'verified' },
+        photoPreview: null,
+        deleteAction: '',
+        deleteLabel: '',
+
+        openCreate() {
+            this.isEdit = false;
+            this.formAction = @json(route('admin.stock.store'));
+            this.formData = { status: 'available', verification_status: 'verified' };
+            this.photoPreview = null;
+            document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+            this.showModal = true;
+        },
+
+        async openEdit(id) {
+            this.isEdit = true;
+            this.formAction = @json(url('admin/stock')) + '/' + id;
+            this.formData = {};
+            this.photoPreview = null;
+            document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
+
+            try {
+                const res = await fetch(@json(url('admin/stock')) + '/' + id + '/json');
+                if (res.ok) {
+                    const data = await res.json();
+                    this.formData = data;
+                }
+            } catch (e) {
+                console.error('Gagal memuat data barang:', e);
+            }
+
+            this.showModal = true;
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.formData = {};
+            this.photoPreview = null;
+        },
+
+        previewPhoto(event) {
+            const file = event.target.files[0];
+            if (file) {
+                this.photoPreview = URL.createObjectURL(file);
+            } else {
+                this.photoPreview = null;
+            }
+        },
+
+        confirmDelete(id, label) {
+            this.deleteAction = @json(url('admin/stock')) + '/' + id;
+            this.deleteLabel = label;
+            this.showDeleteModal = true;
+        }
+    };
+}
+</script>
+@endpush
 @endsection

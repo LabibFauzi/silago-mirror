@@ -7,6 +7,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class User extends Authenticatable
 {
@@ -73,5 +74,39 @@ class User extends Authenticatable
     public function marketplaceDeals(): HasMany
     {
         return $this->hasMany(MarketplaceDeal::class, 'seller_id');
+    }
+
+    protected $appends = [
+        'avatar_url',
+        'profile_photo_url',
+    ];
+
+    public function getProfilePhotoUrlAttribute(): ?string
+    {
+        if (!$this->profile_photo) {
+            return null;
+        }
+
+        if (str_starts_with($this->profile_photo, 'http://') || str_starts_with($this->profile_photo, 'https://')) {
+            return $this->profile_photo;
+        }
+
+        return '/storage/' . ltrim($this->profile_photo, '/');
+    }
+
+    public function getAvatarUrlAttribute(): string
+    {
+        if ($this->profile_photo) {
+            return $this->profile_photo_url ?? 'https://ui-avatars.com/api/?name=' . urlencode($this->name ?: 'User');
+        }
+
+        if ($this->avatar) {
+            if (str_starts_with($this->avatar, 'http://') || str_starts_with($this->avatar, 'https://')) {
+                return $this->avatar;
+            }
+            return '/storage/' . ltrim($this->avatar, '/');
+        }
+
+        return 'https://ui-avatars.com/api/?name=' . urlencode($this->name ?: 'User');
     }
 }

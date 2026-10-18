@@ -20,9 +20,12 @@ class Product extends Model
         'price',
         'stock',
         'is_negotiable',
+        'status',
+        'verification_status',
         'verified_by',
         'verified_at',
         'rejection_note',
+        'scan_result',
         'scan_note',
         'expires_at',
     ];
@@ -61,5 +64,22 @@ class Product extends Model
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class);
+    }
+
+    protected $appends = [
+        'image_url',
+    ];
+
+    public function getImageUrlAttribute(): ?string
+    {
+        $firstImage = $this->images->first();
+        if (!$firstImage || !$firstImage->image_path) {
+            return null;
+        }
+        $path = $firstImage->image_path;
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+        return '/storage/' . ltrim($path, '/');
     }
 }

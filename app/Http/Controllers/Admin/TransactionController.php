@@ -7,6 +7,7 @@ use App\Models\MarketplaceDeal;
 use App\Models\Report;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
+use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -16,7 +17,8 @@ class TransactionController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly NotificationService $notificationService
+        private readonly NotificationService $notificationService,
+        private readonly SettingService $settingService
     ) {}
 
     public function index(Request $request): View
@@ -49,7 +51,9 @@ class TransactionController extends Controller
             ->paginate(15)
             ->withQueryString();
 
-        return view('admin.transactions.index', compact('deals', 'status'));
+        $isMaintenance = $this->settingService->getBool('maintenance_mode', false);
+
+        return view('admin.transactions.index', compact('deals', 'status', 'isMaintenance'));
     }
 
     public function show(Request $request, MarketplaceDeal $deal): View
@@ -130,6 +134,35 @@ class TransactionController extends Controller
             return back()->with('success', 'Keputusan tersimpan. Kedua pihak akan diberitahu.');
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal memproses keputusan: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Hapus transaksi saat mode maintenance aktif.
+     */
+    public function destroy(MarketplaceDeal $deal): RedirectResponse
+    {
+        if (! $this->settingService->getBool('maintenance_mode', false)) {
+            return back()->with('error', 'Penghapusan transaksi hanya dapat dilakukan saat Mode Maintenance aktif.');
+        }
+
+        try {
+            DB::transaction(function () use ($deal) {
+                $dealId = $deal->id;
+                $deal->delete();
+                $this->auditLogService->log(
+                    'marketplace_deal',
+                    'Hapus Transaksi (Maintenance)',
+                    "Transaksi #{$dealId}",
+                    'Penghapusan transaksi saat mode maintenance'
+                );
+            });
+
+            return redirect()
+                ->route('admin.transactions.index')
+                ->with('success', 'Transaksi berhasil dihapus.');
+        } catch (\Exception $e) {
+            return back()->with('error', 'Gagal menghapus transaksi: ' . $e->getMessage());
         }
     }
 }

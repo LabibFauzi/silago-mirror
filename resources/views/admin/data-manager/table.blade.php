@@ -2,6 +2,9 @@
 @section('title', 'Data Manager — ' . $config['label'])
 
 @section('content')
+@php
+    $errors = $errors ?? new \Illuminate\Support\ViewErrorBag;
+@endphp
 <div x-data="dataManager()" class="space-y-4">
 
     {{-- Breadcrumb + Header --}}
@@ -72,7 +75,7 @@
                     @forelse($records as $record)
                     <tr class="border-b border-line hover:bg-page/50 transition-colors">
                         @foreach($config['columns'] as $col)
-                        <td class="px-4 py-3 max-w-[200px] truncate whitespace-nowrap"
+                        <td class="px-4 py-3 max-w-[220px] truncate whitespace-nowrap"
                             title="{{ is_string($record->{$col}) ? $record->{$col} : '' }}">
                             @if($col === 'status' || $col === 'verification_status' || $col === 'offer_status' || $col === 'role')
                                 @php
@@ -105,6 +108,43 @@
                                 @endif
                             @elseif($col === 'price' || $col === 'agreed_price' || $col === 'offer_price')
                                 <span class="font-medium">Rp{{ number_format((float) $record->{$col}, 0, ',', '.') }}</span>
+                            @elseif($col === 'seller_id' && $record->seller)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->seller->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->seller_id }}</span>
+                                </div>
+                            @elseif($col === 'buyer_id' && $record->buyer)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->buyer->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->buyer_id }}</span>
+                                </div>
+                            @elseif($col === 'user_id' && $record->user)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->user->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->user_id }}</span>
+                                </div>
+                            @elseif($col === 'category_id' && $record->category)
+                                <span class="font-medium text-ink">{{ $record->category->name }}</span>
+                            @elseif($col === 'product_id' && $record->product)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block truncate max-w-[150px]">{{ $record->product->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->product_id }}</span>
+                                </div>
+                            @elseif($col === 'reporter_id' && $record->reporter)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->reporter->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->reporter_id }}</span>
+                                </div>
+                            @elseif($col === 'reported_user_id' && $record->reportedUser)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->reportedUser->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->reported_user_id }}</span>
+                                </div>
+                            @elseif($col === 'created_by' && $record->creator)
+                                <div class="leading-tight">
+                                    <span class="font-medium text-ink block">{{ $record->creator->name }}</span>
+                                    <span class="text-[11px] text-faint">#{{ $record->created_by }}</span>
+                                </div>
                             @elseif(str_ends_with($col, '_at') && $record->{$col})
                                 <span class="text-muted text-xs">{{ \Carbon\Carbon::parse($record->{$col})->format('d/m/Y H:i') }}</span>
                             @elseif($col === 'password')
@@ -144,139 +184,416 @@
 
     {{-- ═══════════ Modal Tambah / Ubah ═══════════ --}}
     <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center px-4">
-            <div x-show="showModal" @click="showModal = false" class="fixed inset-0 bg-black/50 transition-opacity"></div>
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="showModal" @click="closeModal()" class="fixed inset-0 bg-black/50 transition-opacity"></div>
 
             <div x-show="showModal" x-transition
-                 class="relative z-10 w-full max-w-2xl rounded-2xl bg-white p-6 shadow-2xl max-h-[90vh] overflow-y-auto">
+                 class="relative z-10 w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
 
-                <div class="mb-5 flex items-center justify-between border-b border-line pb-4">
-                    <h3 class="text-lg font-bold text-ink" x-text="isEdit ? 'Ubah Data' : 'Tambah Data Baru'"></h3>
-                    <button @click="showModal = false" class="rounded-lg p-1 text-faint hover:bg-gray-100 hover:text-ink">
-                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                    </button>
-                </div>
-
-                <form :action="formAction" method="POST" enctype="multipart/form-data">
+                <form :action="formAction" method="POST" enctype="multipart/form-data" class="flex flex-col h-full max-h-[90vh]">
                     @csrf
-                    <template x-if="isEdit">
-                        <input type="hidden" name="_method" value="PUT">
-                    </template>
+                    <input type="hidden" name="_form_action" :value="formAction">
+                    <input type="hidden" name="_method" value="PUT" x-bind:disabled="!isEdit">
 
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        @foreach($config['editable'] as $field)
+                    {{-- Modal Header --}}
+                    <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-white shrink-0">
+                        <div>
+                            <h3 class="text-lg font-bold text-ink" x-text="isEdit ? 'Ubah Data' : 'Tambah Data Baru'"></h3>
+                            <p class="text-xs text-muted">Tabel: <strong class="text-ink">{{ $config['label'] }}</strong> ({{ $table }})</p>
+                        </div>
+                        <button type="button" @click="closeModal()" class="rounded-lg p-1.5 text-faint hover:bg-gray-100 hover:text-ink transition-colors">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                        </button>
+                    </div>
+
+                    {{-- Modal Body (Scrollable) --}}
+                    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+
+                        {{-- Alert Error Validasi --}}
+                        @if($errors->any())
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-4">
+                            <div class="flex items-center gap-2 font-semibold text-red-800 text-sm mb-1.5">
+                                <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                                <span>Gagal menyimpan data! Mohon perbaiki {{ $errors->count() }} kesalahan input:</span>
+                            </div>
+                            <ul class="list-disc pl-7 text-xs text-red-700 space-y-1">
+                                @foreach($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                        @endif
+
+                        {{-- Alert Error Sistem --}}
+                        @if(session('error') && old('_form_action'))
+                        <div class="rounded-xl border border-red-200 bg-red-50 p-4 text-xs text-red-700 font-medium flex items-start gap-2">
+                            <svg class="h-4 w-4 text-red-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                            <span>{{ session('error') }}</span>
+                        </div>
+                        @endif
+
                         @php
-                            $isPassword = $field === 'password';
-                            $isImage    = in_array($field, ['image_path', 'profile_photo', 'avatar']) || ($field === 'icon' && $table === 'categories');
-                            $isTextarea = in_array($field, ['description', 'specification', 'sell_reason', 'body', 'admin_note', 'cancel_note', 'message', 'suspend_reason', 'value', 'meta', 'note', 'banned_words']);
-                            $isBoolean  = in_array($field, ['is_negotiable', 'is_active', 'is_read', 'email_domain_verified', 'two_factor_enabled']);
-                            $isSelect   = false;
-                            $options    = [];
-
-                            if ($field === 'role') { $isSelect = true; $options = ['user','moderator','admin']; }
-                            if ($field === 'status' && $table === 'users') { $isSelect = true; $options = ['active','monitored','suspended']; }
-                            if ($field === 'status' && $table === 'products') { $isSelect = true; $options = ['available','sold','hidden','archived']; }
-                            if ($field === 'status' && $table === 'marketplace_deals') { $isSelect = true; $options = ['agreed','completed','cancelled']; }
-                            if ($field === 'status' && $table === 'reports') { $isSelect = true; $options = ['pending','reviewed','resolved','dismissed']; }
-                            if ($field === 'verification_status') { $isSelect = true; $options = ['pending','verified','rejected']; }
-                            if ($field === 'type' && $table === 'messages') { $isSelect = true; $options = ['text','offer','location','system']; }
-                            if ($field === 'offer_status') { $isSelect = true; $options = ['pending','accepted','rejected','countered']; }
-                            if ($field === 'condition') { $isSelect = true; $options = ['Baru (BNIB)','Baru','Bekas Layak','Bekas']; }
-                            if ($field === 'audience') { $isSelect = true; $options = ['all','user','admin']; }
-                            if ($field === 'resolution') { $isSelect = true; $options = ['support_buyer','support_seller','no_action','item_removed','user_warned','user_suspended']; }
-                            if ($field === 'scan_result') { $isSelect = true; $options = ['clean','flagged']; }
-
-                            $spanFull = $isTextarea || $isImage;
+                            $fieldLabels = [
+                                'name'                => 'Nama',
+                                'email'               => 'Alamat Email',
+                                'nim'                 => 'NIM (Nomor Induk Mahasiswa)',
+                                'username'            => 'Username',
+                                'password'            => 'Kata Sandi',
+                                'phone'               => 'Nomor Telepon / WhatsApp',
+                                'role'                => 'Peran Pengguna (Role)',
+                                'status'              => 'Status',
+                                'profile_photo'       => 'Foto Profil',
+                                'suspend_reason'      => 'Alasan Suspend',
+                                'slug'                => 'Slug URL',
+                                'icon'                => 'Ikon Kategori',
+                                'seller_id'           => 'Penjual (User)',
+                                'buyer_id'            => 'Pembeli (User)',
+                                'user_id'             => 'Pengguna (User)',
+                                'category_id'         => 'Kategori Barang',
+                                'product_id'          => 'Barang Terkait',
+                                'conversation_id'     => 'Percakapan Terkait',
+                                'marketplace_deal_id' => 'Transaksi Deal',
+                                'accepted_message_id' => 'Pesan Deal Terkait',
+                                'parent_offer_id'     => 'Penawaran Induk',
+                                'sender_id'           => 'Pengirim Pesan',
+                                'reviewer_id'         => 'Pemberi Ulasan (Reviewer)',
+                                'reviewee_id'         => 'Penerima Ulasan (Reviewee)',
+                                'reporter_id'         => 'Pelapor (Reporter)',
+                                'reported_user_id'    => 'Pengguna Terlapor',
+                                'reviewed_by'         => 'Ditinjau Oleh',
+                                'verified_by'         => 'Diverifikasi Oleh (Admin)',
+                                'cancelled_by'        => 'Dibatalkan Oleh',
+                                'admin_id'            => 'Admin Terkait',
+                                'created_by'          => 'Dibuat Oleh',
+                                'description'         => 'Deskripsi Lengkap',
+                                'condition'           => 'Kondisi Barang',
+                                'specification'       => 'Spesifikasi Barang',
+                                'completeness'        => 'Kelengkapan',
+                                'sell_reason'         => 'Alasan Dijual',
+                                'price'               => 'Harga Barang',
+                                'stock'               => 'Stok Barang',
+                                'is_negotiable'       => 'Bisa Nego?',
+                                'verification_status' => 'Status Verifikasi',
+                                'rejection_note'      => 'Catatan Penolakan Verifikasi',
+                                'scan_result'         => 'Hasil Scan AI / Keamanan',
+                                'scan_note'           => 'Catatan Hasil Scan',
+                                'expires_at'          => 'Waktu Kedaluwarsa',
+                                'image_path'          => 'File Foto',
+                                'sort_order'          => 'Urutan Tampilan',
+                                'address'             => 'Alamat Titik COD',
+                                'lat'                 => 'Latitude Koordinat',
+                                'lng'                 => 'Longitude Koordinat',
+                                'is_active'           => 'Status Aktif',
+                                'type'                => 'Tipe Pesan',
+                                'message'             => 'Isi Pesan',
+                                'offer_price'         => 'Harga Penawaran',
+                                'offer_status'        => 'Status Penawaran',
+                                'location_lat'        => 'Latitude Lokasi',
+                                'location_lng'        => 'Longitude Lokasi',
+                                'location_name'       => 'Nama Tempat / Lokasi',
+                                'location_address'    => 'Alamat Lokasi',
+                                'read_at'             => 'Waktu Dibaca',
+                                'quantity'            => 'Jumlah Kuantitas',
+                                'agreed_price'        => 'Harga Disepakati',
+                                'payment_method'      => 'Metode Pembayaran',
+                                'agreed_at'           => 'Waktu Disepakati',
+                                'completed_at'        => 'Waktu Selesai',
+                                'cancelled_at'        => 'Waktu Dibatalkan',
+                                'cancel_reason'       => 'Alasan Pembatalan',
+                                'cancel_note'         => 'Catatan Pembatalan',
+                                'rating'              => 'Rating (Bintang 1-5)',
+                                'comment'             => 'Komentar / Ulasan',
+                                'reason'              => 'Alasan Laporan',
+                                'resolution'          => 'Resolusi Masalah',
+                                'admin_note'          => 'Catatan Internal Admin',
+                                'reviewed_at'         => 'Waktu Ditinjau',
+                                'title'               => 'Judul',
+                                'body'                => 'Isi Konten / Pesan',
+                                'reference_id'        => 'ID Referensi Terkait',
+                                'is_read'             => 'Status Sudah Dibaca?',
+                                'category'            => 'Kategori Log',
+                                'action'              => 'Aksi Log',
+                                'target'              => 'Target Log',
+                                'note'                => 'Catatan',
+                                'meta'                => 'Metadata JSON',
+                                'key'                 => 'Kunci Pengaturan (Key)',
+                                'value'               => 'Nilai Pengaturan (Value)',
+                                'audience'            => 'Target Penerima (Audience)',
+                                'scheduled_at'        => 'Jadwal Kirim',
+                                'sent_at'             => 'Waktu Terkirim',
+                            ];
                         @endphp
-                        <div class="{{ $spanFull ? 'sm:col-span-2' : '' }}">
-                            <label class="mb-1 block text-sm font-medium text-ink">
-                                {{ $field }}
-                                @if($isPassword && !isset($config['rules_create'][$field]))
-                                    <span class="text-faint font-normal">(opsional saat ubah)</span>
+
+                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            @foreach($config['editable'] as $field)
+                            @php
+                                $isRelation = isset($relationOptions[$field]);
+                                $isImage    = in_array($field, ['image_path', 'profile_photo', 'avatar']) || ($field === 'icon' && $table === 'categories');
+                                $isTextarea = in_array($field, ['description', 'specification', 'sell_reason', 'body', 'admin_note', 'cancel_note', 'message', 'suspend_reason', 'value', 'meta', 'note', 'banned_words', 'rejection_note', 'scan_note']);
+                                $isBoolean  = in_array($field, ['is_negotiable', 'is_active', 'is_read', 'email_domain_verified', 'two_factor_enabled']);
+                                $isDatetime = str_ends_with($field, '_at') || in_array($field, ['expires_at', 'scheduled_at', 'sent_at']);
+                                $isPassword = $field === 'password';
+                                $isEmail    = $field === 'email';
+                                $isPrice    = in_array($field, ['price', 'agreed_price', 'offer_price']);
+                                $isInteger  = in_array($field, ['stock', 'quantity', 'rating', 'sort_order', 'location_accuracy']);
+                                $isCoord    = in_array($field, ['lat', 'lng', 'location_lat', 'location_lng', 'completed_lat', 'completed_lng']);
+
+                                $isSelect = false;
+                                $options  = [];
+
+                                if ($field === 'role') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'user'      => 'User (Mahasiswa / Pengguna Biasa)',
+                                        'moderator' => 'Moderator',
+                                        'admin'     => 'Administrator',
+                                    ];
+                                }
+                                if ($field === 'status' && $table === 'users') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'active'    => 'Active (Akun Aktif)',
+                                        'monitored' => 'Monitored (Akun Dipantau)',
+                                        'suspended' => 'Suspended (Akun Dibekukan)',
+                                    ];
+                                }
+                                if ($field === 'status' && $table === 'products') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'available' => 'Available (Tersedia)',
+                                        'sold'      => 'Sold (Terjual)',
+                                        'hidden'    => 'Hidden (Disembunyikan)',
+                                        'archived'  => 'Archived (Diarsipkan)',
+                                    ];
+                                }
+                                if ($field === 'status' && $table === 'marketplace_deals') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'agreed'    => 'Agreed (Disepakati)',
+                                        'completed' => 'Completed (Selesai)',
+                                        'cancelled' => 'Cancelled (Dibatalkan)',
+                                    ];
+                                }
+                                if ($field === 'status' && $table === 'reports') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'pending'   => 'Pending (Menunggu Ditinjau)',
+                                        'reviewed'  => 'Reviewed (Sedang Ditinjau)',
+                                        'resolved'  => 'Resolved (Terselesaikan)',
+                                        'dismissed' => 'Dismissed (Ditolak / Ditutup)',
+                                    ];
+                                }
+                                if ($field === 'verification_status') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'pending'  => 'Pending (Menunggu Verifikasi)',
+                                        'verified' => 'Verified (Terverifikasi Aman)',
+                                        'rejected' => 'Rejected (Verifikasi Ditolak)',
+                                    ];
+                                }
+                                if ($field === 'type' && $table === 'messages') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'text'     => 'Text (Pesan Teks Biasa)',
+                                        'offer'    => 'Offer (Penawaran Harga)',
+                                        'location' => 'Location (Titik Lokasi COD)',
+                                        'system'   => 'System (Pesan Otomatis Sistem)',
+                                    ];
+                                }
+                                if ($field === 'offer_status') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'pending'   => 'Pending (Menunggu Respon)',
+                                        'accepted'  => 'Accepted (Tawaran Diterima)',
+                                        'rejected'  => 'Rejected (Tawaran Ditolak)',
+                                        'countered' => 'Countered (Nego Balik)',
+                                    ];
+                                }
+                                if ($field === 'condition') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'Baru (BNIB)' => 'Baru (BNIB - Segel Pabrik)',
+                                        'Baru'        => 'Baru (Buka Segel / Belum Dipakai)',
+                                        'Bekas Layak' => 'Bekas Layak Pakai',
+                                        'Bekas'       => 'Bekas (Minus Ringan / Pemakaian)',
+                                    ];
+                                }
+                                if ($field === 'audience') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'all'   => 'Semua Pengguna (Umum)',
+                                        'user'  => 'Hanya Pengguna Biasa',
+                                        'admin' => 'Hanya Admin & Moderator',
+                                    ];
+                                }
+                                if ($field === 'resolution') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'support_buyer'  => 'Menangkan Pembeli',
+                                        'support_seller' => 'Menangkan Penjual',
+                                        'no_action'      => 'Tidak Ada Tindakan',
+                                        'item_removed'   => 'Hapus Barang Melanggar',
+                                        'user_warned'    => 'Beri Peringatan ke Pengguna',
+                                        'user_suspended' => 'Bekukan Akun Pengguna',
+                                    ];
+                                }
+                                if ($field === 'scan_result') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'clean'   => 'Clean (Aman)',
+                                        'flagged' => 'Flagged (Terindikasi Bermasalah)',
+                                    ];
+                                }
+                                if ($field === 'payment_method') {
+                                    $isSelect = true;
+                                    $options = [
+                                        'cod'      => 'COD (Bayar Tunai saat Ketemu)',
+                                        'transfer' => 'Transfer Bank / QRIS',
+                                        'cash'     => 'Tunai Langsung',
+                                    ];
+                                }
+
+                                $spanFull = $isTextarea || $isImage;
+                            @endphp
+                            <div class="{{ $spanFull ? 'sm:col-span-2' : '' }}">
+                                <label class="mb-1.5 flex items-center justify-between text-xs font-semibold text-ink">
+                                    <span>{{ $fieldLabels[$field] ?? ucfirst(str_replace('_', ' ', $field)) }}</span>
+                                    <span class="text-[10px] font-mono font-normal text-muted bg-gray-100 px-1.5 py-0.5 rounded">{{ $field }}</span>
+                                </label>
+
+                                {{-- 1. Pilihan Relasi Foreign Key --}}
+                                @if($isRelation)
+                                    <select name="{{ $field }}" x-model="formData.{{ $field }}"
+                                            class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+                                        <option value="">— Pilih {{ $fieldLabels[$field] ?? $field }} —</option>
+                                        @foreach($relationOptions[$field] as $opt)
+                                            <option value="{{ $opt['value'] }}">{{ $opt['label'] }}</option>
+                                        @endforeach
+                                    </select>
+
+                                {{-- 2. Gambar / Foto Upload --}}
                                 @elseif($isImage)
-                                    <span class="text-brand font-normal text-xs">(Unggah Foto/Gambar)</span>
-                                @endif
-                            </label>
+                                    <div class="space-y-2">
+                                        <div class="flex items-center gap-3">
+                                            <!-- Preview Box -->
+                                            <div class="h-16 w-16 rounded-xl border-2 @error($field) border-red-400 @else border-line @enderror bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative group">
+                                                <template x-if="imagePreviews['{{ $field }}'] || formData['{{ $field }}_url'] || (formData['{{ $field }}'] && (formData['{{ $field }}'].includes('/') || formData['{{ $field }}'].includes('.')))">
+                                                    <img :src="imagePreviews['{{ $field }}'] || formData['{{ $field }}_url'] || (formData['{{ $field }}'] ? (formData['{{ $field }}'].startsWith('http') ? formData['{{ $field }}'] : '/storage/' + formData['{{ $field }}']) : '')" 
+                                                         class="h-full w-full object-cover" 
+                                                         alt="Preview">
+                                                </template>
+                                                <template x-if="!imagePreviews['{{ $field }}'] && !formData['{{ $field }}_url'] && (!formData['{{ $field }}'] || (!formData['{{ $field }}'].includes('/') && !formData['{{ $field }}'].includes('.')))">
+                                                    <svg class="h-6 w-6 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                                                    </svg>
+                                                </template>
+                                            </div>
 
-                            @if($isImage)
-                                <div class="space-y-2">
-                                    <div class="flex items-center gap-3">
-                                        <!-- Preview Box -->
-                                        <div class="h-16 w-16 rounded-xl border-2 border-line bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative group">
-                                            <template x-if="imagePreviews['{{ $field }}'] || formData['{{ $field }}_url'] || (formData['{{ $field }}'] && (formData['{{ $field }}'].includes('/') || formData['{{ $field }}'].includes('.')))">
-                                                <img :src="imagePreviews['{{ $field }}'] || formData['{{ $field }}_url'] || (formData['{{ $field }}'] ? (formData['{{ $field }}'].startsWith('http') ? formData['{{ $field }}'] : '/storage/' + formData['{{ $field }}']) : '')" 
-                                                     class="h-full w-full object-cover" 
-                                                     alt="Preview">
-                                            </template>
-                                            <template x-if="!imagePreviews['{{ $field }}'] && !formData['{{ $field }}_url'] && (!formData['{{ $field }}'] || (!formData['{{ $field }}'].includes('/') && !formData['{{ $field }}'].includes('.')))">
-                                                <svg class="h-6 w-6 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                                                </svg>
-                                            </template>
-                                        </div>
-
-                                        <!-- Upload Controls -->
-                                        <div class="flex-1 min-w-0">
-                                            <input type="file" 
-                                                   name="{{ $field }}" 
-                                                   id="file_{{ $field }}"
-                                                   accept="image/*"
-                                                   @change="previewFile($event, '{{ $field }}')"
-                                                   class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border border-line rounded-lg p-1.5 bg-white">
-                                            <div class="flex items-center justify-between text-[11px] text-muted mt-1">
-                                                <span>JPG, PNG, WEBP, SVG (Maks. 5MB)</span>
-                                                <span x-show="isEdit" class="text-faint">Kosongkan jika foto tetap</span>
+                                            <!-- Upload Controls -->
+                                            <div class="flex-1 min-w-0">
+                                                <input type="file" 
+                                                       name="{{ $field }}" 
+                                                       id="file_{{ $field }}"
+                                                       accept="image/*"
+                                                       @change="previewFile($event, '{{ $field }}')"
+                                                       class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border @error($field) border-red-500 bg-red-50/20 @else border-line @enderror rounded-lg p-1.5 bg-white">
+                                                <div class="flex items-center justify-between text-[11px] text-muted mt-1">
+                                                    <span>JPG, PNG, WEBP, SVG (Maks. 5MB)</span>
+                                                    <span x-show="isEdit" class="text-faint">Kosongkan jika foto tidak diubah</span>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @elseif($isBoolean)
-                                <select name="{{ $field }}" x-model="formData.{{ $field }}"
-                                        class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
-                                    <option value="1">Ya</option>
-                                    <option value="0">Tidak</option>
-                                </select>
-                            @elseif($isSelect)
-                                <select name="{{ $field }}" x-model="formData.{{ $field }}"
-                                        class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
-                                    <option value="">— Pilih —</option>
-                                    @foreach($options as $opt)
-                                        <option value="{{ $opt }}">{{ $opt }}</option>
-                                    @endforeach
-                                </select>
-                            @elseif($isTextarea)
-                                <textarea name="{{ $field }}" x-model="formData.{{ $field }}" rows="3"
-                                          class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
-                                          placeholder="{{ $field }}"></textarea>
-                            @elseif($isPassword)
-                                <input type="password" name="{{ $field }}" x-model="formData.{{ $field }}"
-                                       class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
-                                       placeholder="{{ $isPassword && 'isEdit' ? 'Kosongkan jika tidak diubah' : $field }}"
-                                       autocomplete="new-password">
-                            @else
-                                <input type="text" name="{{ $field }}" x-model="formData.{{ $field }}"
-                                       class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"
-                                       placeholder="{{ $field }}">
-                            @endif
-                        </div>
-                        @endforeach
-                    </div>
 
-                    @if($errors->any())
-                    <div class="mt-4 rounded-lg border border-red-200 bg-red-50 p-3">
-                        <ul class="list-disc pl-4 text-sm text-red-700">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
+                                {{-- 3. Boolean Select --}}
+                                @elseif($isBoolean)
+                                    <select name="{{ $field }}" x-model="formData.{{ $field }}"
+                                            class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+                                        <option :value="1">Ya (Aktif / True)</option>
+                                        <option :value="0">Tidak (Nonaktif / False)</option>
+                                    </select>
+
+                                {{-- 4. Enum Select --}}
+                                @elseif($isSelect)
+                                    <select name="{{ $field }}" x-model="formData.{{ $field }}"
+                                            class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+                                        <option value="">— Pilih {{ $fieldLabels[$field] ?? $field }} —</option>
+                                        @foreach($options as $val => $lbl)
+                                            <option value="{{ $val }}">{{ $lbl }}</option>
+                                        @endforeach
+                                    </select>
+
+                                {{-- 5. Textarea --}}
+                                @elseif($isTextarea)
+                                    <textarea name="{{ $field }}" x-model="formData.{{ $field }}" rows="3"
+                                              class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror"
+                                              placeholder="Masukkan {{ strtolower($fieldLabels[$field] ?? $field) }}..."></textarea>
+
+                                {{-- 6. Tanggal dan Waktu (Datetime-local) --}}
+                                @elseif($isDatetime)
+                                    <input type="datetime-local" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+
+                                {{-- 7. Harga / Mata Uang --}}
+                                @elseif($isPrice)
+                                    <div class="relative">
+                                        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-faint">Rp</span>
+                                        <input type="number" min="0" step="100" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                               placeholder="0"
+                                               class="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+                                    </div>
+
+                                {{-- 8. Bilangan Bulat (Stock, Quantity, Rating, Sort) --}}
+                                @elseif($isInteger)
+                                    <input type="number" min="{{ $field === 'quantity' || $field === 'rating' ? 1 : 0 }}" {{ $field === 'rating' ? 'max=5' : '' }} step="1" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           placeholder="0"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+
+                                {{-- 9. Koordinat Geografis (Lat/Lng) --}}
+                                @elseif($isCoord)
+                                    <input type="number" step="any" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           placeholder="Contoh: -6.89148"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror">
+
+                                {{-- 10. Kata Sandi --}}
+                                @elseif($isPassword)
+                                    <input type="password" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror"
+                                           placeholder="Minimal 8 karakter..."
+                                           autocomplete="new-password">
+                                    <span x-show="isEdit" class="text-[11px] text-faint mt-1 block">Biarkan kosong jika tidak ingin mengubah kata sandi</span>
+
+                                {{-- 11. Email --}}
+                                @elseif($isEmail)
+                                    <input type="email" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror"
+                                           placeholder="user@silago.ac.id">
+
+                                {{-- 12. Default Input Teks --}}
+                                @else
+                                    <input type="text" name="{{ $field }}" x-model="formData.{{ $field }}"
+                                           class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error($field) border-red-500 bg-red-50/20 @else border-line @enderror"
+                                           placeholder="Masukkan {{ strtolower($fieldLabels[$field] ?? $field) }}...">
+                                @endif
+
+                                {{-- Pesan Error Inline --}}
+                                @error($field)
+                                    <p class="mt-1 text-xs text-red-600 font-medium flex items-center gap-1">
+                                        <svg class="h-3.5 w-3.5 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/></svg>
+                                        <span>{{ $message }}</span>
+                                    </p>
+                                @enderror
+                            </div>
                             @endforeach
-                        </ul>
+                        </div>
                     </div>
-                    @endif
 
-                    <div class="mt-6 flex justify-end gap-2 border-t border-line pt-4">
-                        <button type="button" @click="showModal = false"
-                                class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted hover:bg-gray-200">Batal</button>
+                    {{-- Modal Footer --}}
+                    <div class="flex justify-end gap-2 border-t border-line px-6 py-3.5 bg-gray-50/80 rounded-b-2xl shrink-0">
+                        <button type="button" @click="closeModal()"
+                                class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted hover:bg-gray-200 transition-colors">Batal</button>
                         <button type="submit"
-                                class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700"
+                                class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors"
                                 x-text="isEdit ? 'Simpan Perubahan' : 'Tambah Data'"></button>
                     </div>
                 </form>
@@ -286,7 +603,7 @@
 
     {{-- ═══════════ Modal Konfirmasi Hapus ═══════════ --}}
     <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center px-4">
+        <div class="flex min-h-screen items-center justify-center p-4">
             <div x-show="showDeleteModal" @click="showDeleteModal = false" class="fixed inset-0 bg-black/50 transition-opacity"></div>
             <div x-show="showDeleteModal" x-transition class="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
                 <div class="flex flex-col items-center text-center">
@@ -315,12 +632,22 @@
 @push('scripts')
 <script>
 function dataManager() {
+    const hasErrors = {{ ($errors->any() || session('error')) && old('_form_action') ? 'true' : ($errors->any() ? 'true' : 'false') }};
+    const wasEdit = {{ old('_method') === 'PUT' ? 'true' : 'false' }};
+    const oldFormAction = @json(old('_form_action', ''));
+    const oldInputs = @json(old());
+
+    // Bersihkan token dan field teknis agar tidak bentrok dengan formData
+    delete oldInputs._token;
+    delete oldInputs._method;
+    delete oldInputs._form_action;
+
     return {
-        showModal: false,
+        showModal: hasErrors,
         showDeleteModal: false,
-        isEdit: false,
-        formAction: '',
-        formData: {},
+        isEdit: wasEdit,
+        formAction: oldFormAction || (wasEdit ? '' : @json(route('admin.data-manager.store', $table))),
+        formData: hasErrors ? oldInputs : {},
         imagePreviews: {},
         deleteAction: '',
         deleteLabel: '',
@@ -345,7 +672,6 @@ function dataManager() {
                 const res = await fetch(@json(url('admin/data-manager/' . $table)) + '/' + id + '/json');
                 if (res.ok) {
                     const data = await res.json();
-                    // Bersihkan password agar tidak muncul
                     if (data.password) data.password = '';
                     this.formData = data;
                 }
@@ -354,6 +680,12 @@ function dataManager() {
             }
 
             this.showModal = true;
+        },
+
+        closeModal() {
+            this.showModal = false;
+            this.formData = {};
+            this.imagePreviews = {};
         },
 
         previewFile(event, field) {
@@ -370,7 +702,7 @@ function dataManager() {
             this.deleteLabel = label;
             this.showDeleteModal = true;
         }
-    }
+    };
 }
 </script>
 @endpush

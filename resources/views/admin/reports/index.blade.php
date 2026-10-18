@@ -33,7 +33,12 @@
                 @forelse($reports ?? [] as $report)
                 <tr class="border-b border-line hover:bg-page">
                     <td class="px-6 py-4 font-medium text-ink">#L-{{ str_pad($report->id, 4, '0', STR_PAD_LEFT) }}</td>
-                    <td class="px-6 py-4">{{ $report->reporter->name ?? 'User' }}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center">
+                            <img src="{{ $report->reporter->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode($report->reporter->name ?? 'User') }}" alt="Avatar" class="w-7 h-7 rounded-full object-cover mr-2 border border-line">
+                            <span class="font-medium text-ink">{{ $report->reporter->name ?? 'User' }}</span>
+                        </div>
+                    </td>
                     <td class="px-6 py-4">{{ $report->product->name ?? ($report->reportedUser->name ?? '-') }}</td>
                     <td class="px-6 py-4 truncate max-w-xs">{{ $report->reason ?? '-' }}</td>
                     <td class="px-6 py-4">{{ $report->created_at ? $report->created_at->format('d M Y, H:i') : '-' }}</td>

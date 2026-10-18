@@ -26,4 +26,19 @@ class ProductImage extends Model
     {
         return $this->belongsTo(Product::class);
     }
+
+    protected $appends = ['url'];
+
+    public function getUrlAttribute(): ?string
+    {
+        if (!$this->image_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->image_path, 'http://') || str_starts_with($this->image_path, 'https://')) {
+            return $this->image_path;
+        }
+
+        return '/storage/' . ltrim($this->image_path, '/');
+    }
 }

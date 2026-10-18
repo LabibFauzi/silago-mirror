@@ -25,18 +25,24 @@
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-6">
-            <div>
-                <h3 class="text-sm font-medium text-muted mb-3">Informasi Pembeli</h3>
-                <div class="space-y-2 text-sm">
-                    <div><span class="text-muted">Nama:</span> <span class="text-ink font-medium">{{ $deal->buyer->name ?? '-' }}</span></div>
-                    <div><span class="text-muted">Email:</span> <span class="text-ink font-medium">{{ $deal->buyer->email ?? '-' }}</span></div>
+            <div class="flex items-start gap-3">
+                <img src="{{ $deal->buyer->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode($deal->buyer->name ?? 'Buyer') }}" alt="Avatar Pembeli" class="w-12 h-12 rounded-full object-cover border border-line">
+                <div>
+                    <h3 class="text-sm font-medium text-muted mb-1">Informasi Pembeli</h3>
+                    <div class="space-y-1 text-sm">
+                        <div><span class="text-ink font-medium">{{ $deal->buyer->name ?? '-' }}</span></div>
+                        <div class="text-xs text-muted">{{ $deal->buyer->email ?? '-' }}</div>
+                    </div>
                 </div>
             </div>
-            <div>
-                <h3 class="text-sm font-medium text-muted mb-3">Informasi Penjual</h3>
-                <div class="space-y-2 text-sm">
-                    <div><span class="text-muted">Nama:</span> <span class="text-ink font-medium">{{ $deal->seller->name ?? '-' }}</span></div>
-                    <div><span class="text-muted">Email:</span> <span class="text-ink font-medium">{{ $deal->seller->email ?? '-' }}</span></div>
+            <div class="flex items-start gap-3">
+                <img src="{{ $deal->seller->avatar_url ?? 'https://ui-avatars.com/api/?name='.urlencode($deal->seller->name ?? 'Seller') }}" alt="Avatar Penjual" class="w-12 h-12 rounded-full object-cover border border-line">
+                <div>
+                    <h3 class="text-sm font-medium text-muted mb-1">Informasi Penjual</h3>
+                    <div class="space-y-1 text-sm">
+                        <div><span class="text-ink font-medium">{{ $deal->seller->name ?? '-' }}</span></div>
+                        <div class="text-xs text-muted">{{ $deal->seller->email ?? '-' }}</div>
+                    </div>
                 </div>
             </div>
         </div>

@@ -28,8 +28,20 @@
 
         <div class="border-t border-line pt-4 space-y-2 text-sm text-left">
             <div class="flex justify-between">
+                <span class="text-muted">Username</span>
+                <span class="font-medium text-ink">{{ $user->username ? '@' . $user->username : '-' }}</span>
+            </div>
+            <div class="flex justify-between">
                 <span class="text-muted">NIM</span>
                 <span class="font-medium text-ink">{{ $user->nim ?? '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-muted">No. HP / WA</span>
+                <span class="font-medium text-ink">{{ $user->phone ?? '-' }}</span>
+            </div>
+            <div class="flex justify-between">
+                <span class="text-muted">Peran</span>
+                <span class="font-semibold text-ink uppercase text-xs">{{ $user->role ?? 'user' }}</span>
             </div>
             <div class="flex justify-between">
                 <span class="text-muted">Bergabung</span>
