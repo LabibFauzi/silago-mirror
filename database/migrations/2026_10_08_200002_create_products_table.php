@@ -20,7 +20,6 @@ return new class extends Migration
             $table->text('sell_reason')->nullable();
             $table->decimal('price', 12, 2);
             $table->integer('stock')->default(1);
-            $table->boolean('is_negotiable')->default(true);
             $table->string('status')->default('available');
             $table->string('verification_status')->default('pending');
             $table->foreignId('verified_by')->nullable()->constrained('users')->nullOnDelete();

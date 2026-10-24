@@ -31,7 +31,6 @@ class UpdateProductRequest extends FormRequest
             'sell_reason' => ['sometimes', 'nullable', 'string'],
             'price' => ['sometimes', 'required', 'numeric', 'min:1'],
             'stock' => ['sometimes', 'required', 'integer', 'min:1'],
-            'is_negotiable' => ['sometimes', 'required', 'boolean'],
             'category_id' => ['sometimes', 'required', 'exists:categories,id'],
             'photos' => ['sometimes', 'array', 'min:1', 'max:' . $maxPhotos],
             'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],

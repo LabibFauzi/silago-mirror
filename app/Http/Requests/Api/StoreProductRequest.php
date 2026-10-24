@@ -31,7 +31,6 @@ class StoreProductRequest extends FormRequest
             'sell_reason' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:1'],
             'stock' => ['required', 'integer', 'min:1'],
-            'is_negotiable' => ['required', 'boolean'],
             'category_id' => ['required', 'exists:categories,id'],
             'photos' => ['required', 'array', 'min:1', 'max:' . $maxPhotos],
             'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],

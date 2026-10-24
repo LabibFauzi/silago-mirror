@@ -19,7 +19,6 @@ class Product extends Model
         'sell_reason',
         'price',
         'stock',
-        'is_negotiable',
         'status',
         'verification_status',
         'verified_by',
@@ -35,7 +34,6 @@ class Product extends Model
         return [
             'price' => 'decimal:2',
             'stock' => 'integer',
-            'is_negotiable' => 'boolean',
             'verified_at' => 'datetime',
             'expires_at' => 'datetime',
         ];

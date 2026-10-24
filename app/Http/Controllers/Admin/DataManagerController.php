@@ -109,7 +109,7 @@ class DataManagerController extends Controller
             'columns'    => ['id', 'name', 'price', 'stock', 'status', 'verification_status', 'seller_id', 'category_id', 'created_at'],
             'searchable' => ['name', 'description'],
             'editable'   => [
-                'seller_id', 'category_id', 'name', 'price', 'stock', 'condition', 'is_negotiable',
+                'seller_id', 'category_id', 'name', 'price', 'stock', 'condition',
                 'status', 'verification_status', 'verified_by', 'expires_at', 'description',
                 'specification', 'completeness', 'sell_reason', 'rejection_note', 'scan_result', 'scan_note'
             ],
@@ -120,7 +120,6 @@ class DataManagerController extends Controller
                 'price'               => 'required|numeric|min:0',
                 'stock'               => 'required|integer|min:0',
                 'condition'           => 'nullable|string|max:50',
-                'is_negotiable'       => 'nullable|boolean',
                 'status'              => 'required|in:available,sold,hidden,archived',
                 'verification_status' => 'required|in:pending,verified,rejected',
                 'verified_by'         => 'nullable|exists:users,id',
@@ -140,7 +139,6 @@ class DataManagerController extends Controller
                 'price'               => 'required|numeric|min:0',
                 'stock'               => 'required|integer|min:0',
                 'condition'           => 'nullable|string|max:50',
-                'is_negotiable'       => 'nullable|boolean',
                 'status'              => 'required|in:available,sold,hidden,archived',
                 'verification_status' => 'required|in:pending,verified,rejected',
                 'verified_by'         => 'nullable|exists:users,id',

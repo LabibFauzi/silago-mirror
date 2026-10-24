@@ -122,7 +122,7 @@ class StockController extends Controller
                     if ($v === '') $productData[$k] = null;
                 }
 
-                $productData['is_negotiable'] = true;
+
 
                 $product = new Product();
                 $product->forceFill($productData)->save();
