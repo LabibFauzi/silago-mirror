@@ -211,12 +211,11 @@
                 { "key": "sell_reason", "value": "BU", "type": "text" },
                 { "key": "price", "value": "3500000", "type": "text" },
                 { "key": "stock", "value": "2", "type": "text" },
-                { "key": "is_negotiable", "value": "1", "type": "text" },
                 { "key": "category_id", "value": "1", "type": "text" },
                 { "key": "photos[]", "type": "file", "src": [] }
               ]
             },
-            "description": "photos 1..max_photos (default 5) jpg/jpeg/png/webp 2MB"
+            "description": "photos 1..max_photos (default 5) jpg/jpeg/png/webp 1MB"
           }
         },
         {

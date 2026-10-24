@@ -227,10 +227,9 @@ Auth + multipart. Set `seller_id=me`, `status=available`, `verification_status=p
 | sell_reason | nullable string |
 | price | required numeric min1 |
 | stock | required int min1 |
-| is_negotiable | required boolean |
 | category_id | required exists categories.id |
 | photos | required array min1 max `max_photos` (default 5) |
-| photos.* | image mimes jpg/jpeg/png/webp max2048 |
+| photos.* | image mimes jpg/jpeg/png/webp max1024 |
 
 → 201 `ProductResource` + `{message:"Barang berhasil dikirim dan menunggu verifikasi"}`
 
@@ -471,7 +470,7 @@ Auth. Toggle: jika exists → delete `favorited=false` else create `favorited=tr
 ```
 
 ### ProductResource
-`id, name, description, condition, specification, completeness, sell_reason, price(float), stock, is_negotiable, status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
+`id, name, description, condition, specification, completeness, sell_reason, price(float), stock, status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
 
 ### ProductListResource
 `id, name, price, stock, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`
@@ -520,7 +519,7 @@ curl -X PUT $BASE/me -H "Authorization: Bearer $TOKEN" -F name="Budi S" -F profi
 # Products
 curl "$BASE/products?search=laptop&sort=price_asc&category_id=1" -H "Authorization: Bearer $TOKEN"
 curl -X POST $BASE/products -H "Authorization: Bearer $TOKEN" \
-  -F name="Laptop ThinkPad" -F condition="Bekas Layak" -F price=3500000 -F stock=2 -F is_negotiable=1 -F category_id=1 -F photos[]=@a.jpg -F photos[]=@b.jpg
+  -F name="Laptop ThinkPad" -F condition="Bekas Layak" -F price=3500000 -F stock=2 -F category_id=1 -F photos[]=@a.jpg -F photos[]=@b.jpg
 curl $BASE/products/1 -H "Authorization: Bearer $TOKEN"
 
 # Conversations & messages

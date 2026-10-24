@@ -915,7 +915,6 @@ class DataManagerController extends Controller
             'specification'       => 'Spesifikasi',
             'completeness'        => 'Kelengkapan',
             'sell_reason'         => 'Alasan Dijual',
-            'is_negotiable'       => 'Bisa Nego',
             'rejection_note'      => 'Catatan Penolakan',
             'scan_result'         => 'Hasil Scan',
             'scan_note'           => 'Catatan Scan',

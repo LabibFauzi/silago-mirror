@@ -73,8 +73,7 @@ class DummyDataSeeder extends Seeder
         ];
 
         for ($i = 1; $i <= 15; $i++) {
-            $status = 'available'; // Semua set available biar muncul
-            // Pastikan minimal 70% verified agar search & kategori bisa di-test
+            $status = 'available'; 
             $verification = $i <= 10 ? 'verified' : ($i <= 13 ? 'pending' : 'rejected');
             $seller = $sellers[($i - 1) % 5];
 
@@ -89,7 +88,6 @@ class DummyDataSeeder extends Seeder
                 'sell_reason' => 'Tidak dipakai lagi',
                 'price' => 50000 + ($i * 10000),
                 'stock' => rand(0, 5),
-                'is_negotiable' => true,
                 'status' => $status,
                 'verification_status' => $verification,
                 'verified_by' => $verification === 'verified' ? 1 : null,

@@ -88,7 +88,7 @@
                                     };
                                 @endphp
                                 <span class="inline-block rounded-full px-2 py-0.5 text-xs font-medium {{ $cls }}">{{ $val ?? '-' }}</span>
-                            @elseif($col === 'is_active' || $col === 'is_read' || $col === 'is_negotiable')
+                            @elseif($col === 'is_active' || $col === 'is_read')
                                 @if($record->{$col})
                                     <span class="inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">Ya</span>
                                 @else
@@ -272,7 +272,6 @@
                                 'sell_reason'         => 'Alasan Dijual',
                                 'price'               => 'Harga Barang',
                                 'stock'               => 'Stok Barang',
-                                'is_negotiable'       => 'Bisa Nego?',
                                 'verification_status' => 'Status Verifikasi',
                                 'rejection_note'      => 'Catatan Penolakan Verifikasi',
                                 'scan_result'         => 'Hasil Scan AI / Keamanan',
@@ -330,7 +329,7 @@
                                 $isRelation = isset($relationOptions[$field]);
                                 $isImage    = in_array($field, ['image_path', 'profile_photo', 'avatar']) || ($field === 'icon' && $table === 'categories');
                                 $isTextarea = in_array($field, ['description', 'specification', 'sell_reason', 'body', 'admin_note', 'cancel_note', 'message', 'suspend_reason', 'value', 'meta', 'note', 'banned_words', 'rejection_note', 'scan_note']);
-                                $isBoolean  = in_array($field, ['is_negotiable', 'is_active', 'is_read', 'email_domain_verified', 'two_factor_enabled']);
+                                $isBoolean  = in_array($field, ['is_active', 'is_read', 'email_domain_verified', 'two_factor_enabled']);
                                 $isDatetime = str_ends_with($field, '_at') || in_array($field, ['expires_at', 'scheduled_at', 'sent_at']);
                                 $isPassword = $field === 'password';
                                 $isEmail    = $field === 'email';
