@@ -23,7 +23,7 @@ class VerificationController extends Controller
         $status = $request->input('status') ?: 'all';
         $search = $request->input('q');
 
-        $products = Product::with(['seller', 'category', 'images'])
+        $products = Product::with(['seller', 'category', 'images' => fn ($q) => $q->orderBy('sort_order')])
             ->when($status && $status !== 'all', fn($q) => $q->where('verification_status', $status))
             ->when($search, function ($q) use ($search) {
                 $searchLower = strtolower($search);

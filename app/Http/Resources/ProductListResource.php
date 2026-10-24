@@ -33,6 +33,20 @@ class ProductListResource extends JsonResource
                          
                 return $cover ? Storage::url($cover->image_path) : null;
             }),
+
+            // Semua foto produk (untuk carousel/slide di aplikasi mobile).
+            'images' => $this->whenLoaded('images', function () {
+                return $this->images
+                    ->sortBy('sort_order')
+                    ->values()
+                    ->map(function ($image) {
+                        return [
+                            'id' => $image->id,
+                            'url' => Storage::url($image->image_path),
+                            'sort_order' => $image->sort_order,
+                        ];
+                    });
+            }),
             
             'seller' => $this->whenLoaded('seller', function () {
                 return [

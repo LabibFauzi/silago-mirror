@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Product extends Model
 {
@@ -66,11 +67,12 @@ class Product extends Model
 
     protected $appends = [
         'image_url',
+        'image_urls',
     ];
 
     public function getImageUrlAttribute(): ?string
     {
-        $firstImage = $this->images->first();
+        $firstImage = $this->images->sortBy('sort_order')->first();
         if (!$firstImage || !$firstImage->image_path) {
             return null;
         }
@@ -79,5 +81,25 @@ class Product extends Model
             return $path;
         }
         return '/storage/' . ltrim($path, '/');
+    }
+
+    /**
+     * Semua foto produk dalam bentuk URL publik (untuk galeri/preview).
+     *
+     * @return array<int, string>
+     */
+    public function getImageUrlsAttribute(): array
+    {
+        return $this->images
+            ->sortBy('sort_order')
+            ->map(function ($image) {
+                $path = $image->image_path;
+                if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                    return $path;
+                }
+                return Storage::url($path);
+            })
+            ->values()
+            ->all();
     }
 }

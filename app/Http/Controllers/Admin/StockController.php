@@ -36,7 +36,7 @@ class StockController extends Controller
         $availableCount = (clone $query)->where('stock', '>', 0)->count();
         $outCount = (clone $query)->where('stock', 0)->count();
 
-        $products = $query->with(['seller', 'category', 'images'])
+        $products = $query->with(['seller', 'category', 'images' => fn ($q) => $q->orderBy('sort_order')])
             ->when($filter && $filter !== 'all', function ($q) use ($filter) {
                 if ($filter === 'available') {
                     $q->where('stock', '>', 0);
@@ -73,9 +73,25 @@ class StockController extends Controller
      */
     public function showJson(Product $product): JsonResponse
     {
-        $product->load(['images']);
+        $product->load([
+            'seller:id,name,email,nim',
+            'category:id,name,slug',
+            'images' => fn ($q) => $q->orderBy('sort_order', 'asc'),
+        ]);
+
         $data = $product->toArray();
-        $data['photo_url'] = $product->image_url;
+
+        // URL publik semua foto (relatif /storage/...), dipakai modal detail.
+        $data['images'] = $product->images->map(function (ProductImage $image) {
+            return [
+                'id' => $image->id,
+                'url' => Storage::url($image->image_path),
+                'sort_order' => $image->sort_order,
+            ];
+        })->values()->all();
+
+        $data['photo_url'] = $data['images'][0]['url'] ?? null;
+        $data['photos_count'] = count($data['images']);
 
         return response()->json($data);
     }

@@ -67,23 +67,39 @@
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4">Verifikasi</th>
                         <th class="px-6 py-4">Tanggal Posting</th>
-                        @if(!empty($isMaintenance))
-                            <th class="px-6 py-4 text-right">Aksi</th>
-                        @endif
+                        <th class="px-6 py-4 text-right">Aksi</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($products ?? [] as $product)
                     <tr class="border-b border-line hover:bg-page transition-colors">
                         <td class="px-6 py-4">
+                            @php
+                                $productImages = $product->images ?? collect();
+                                $coverUrl = $product->image_url;
+                            @endphp
                             <div class="flex items-center">
-                                <img src="{{ $product->image_url ?? 'https://via.placeholder.com/40' }}" 
-                                     alt="Foto" 
-                                     class="w-10 h-10 rounded-md object-cover mr-3 border border-line bg-gray-50"
-                                     onerror="this.src='https://via.placeholder.com/40'">
+                                <button type="button" @click="openDetail({{ $product->id }})"
+                                        class="relative mr-3 shrink-0 group" title="Lihat detail barang">
+                                    @if($coverUrl)
+                                        <img src="{{ $coverUrl }}"
+                                             alt="Foto {{ $product->name }}"
+                                             class="w-12 h-12 rounded-md object-cover border border-line bg-gray-50 group-hover:opacity-80 transition-opacity"
+                                             onerror="this.style.display='none'">
+                                    @else
+                                        <span class="flex h-12 w-12 items-center justify-center rounded-md border border-line bg-gray-50 text-faint">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25z"/></svg>
+                                        </span>
+                                    @endif
+                                    @if($productImages->count() > 1)
+                                        <span class="absolute -bottom-1.5 -right-1.5 rounded-full bg-brand px-1.5 py-0.5 text-[10px] font-bold text-white shadow">
+                                            +{{ $productImages->count() - 1 }}
+                                        </span>
+                                    @endif
+                                </button>
                                 <div>
                                     <div class="font-medium text-ink">{{ $product->name }}</div>
-                                    <div class="text-[11px] text-faint">ID: #{{ $product->id }}</div>
+                                    <div class="text-[11px] text-faint">ID: #{{ $product->id }}{{ $productImages->count() > 0 ? ' · ' . $productImages->count() . ' foto' : '' }}</div>
                                 </div>
                             </div>
                         </td>
@@ -120,14 +136,19 @@
                         
                         @if(!empty($isMaintenance))
                         <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
+                            <button @click="openDetail({{ $product->id }})" class="text-brand hover:underline text-xs font-semibold">Detail</button>
                             <button @click="openEdit({{ $product->id }})" class="text-blue-600 hover:underline text-xs font-semibold">Ubah</button>
                             <button @click="confirmDelete({{ $product->id }}, '{{ addslashes($product->name) }}')" class="text-red-600 hover:underline text-xs font-semibold">Hapus</button>
+                        </td>
+                        @else
+                        <td class="px-6 py-4 text-right whitespace-nowrap">
+                            <button @click="openDetail({{ $product->id }})" class="text-brand hover:underline text-xs font-semibold">Detail</button>
                         </td>
                         @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="{{ !empty($isMaintenance) ? 9 : 8 }}" class="px-6 py-12 text-center text-muted">
+                        <td colspan="9" class="px-6 py-12 text-center text-muted">
                             <div class="flex flex-col items-center gap-2">
                                 <svg class="h-10 w-10 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
                                 <span>Tidak ada data barang</span>
@@ -376,6 +397,183 @@
         </div>
     </div>
     @endif
+
+    {{-- ═══════════ Modal Detail Barang (preview foto + informasi lengkap) ═══════════ --}}
+    <div x-show="showDetailModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="showDetailModal" @click="closeDetail()" class="fixed inset-0 bg-black/60 transition-opacity"></div>
+
+            <div x-show="showDetailModal" x-transition
+                 class="relative z-10 flex max-h-[92vh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
+
+                {{-- Header --}}
+                <div class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-4">
+                    <div class="min-w-0">
+                        <h3 class="truncate text-lg font-bold text-ink" x-text="detail.name || 'Detail Barang'"></h3>
+                        <p class="text-xs text-muted">
+                            ID #<span x-text="detail.id || '-'"></span>
+                            <template x-if="detail.photos_count">
+                                <span> · <span x-text="detail.photos_count"></span> foto</span>
+                            </template>
+                        </p>
+                    </div>
+                    <button type="button" @click="closeDetail()" class="shrink-0 rounded-lg p-1.5 text-faint transition-colors hover:bg-gray-100 hover:text-ink">
+                        <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto">
+                    {{-- Loading --}}
+                    <div x-show="detailLoading" class="flex flex-col items-center justify-center gap-3 py-24 text-muted">
+                        <svg class="h-8 w-8 animate-spin text-brand" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"/></svg>
+                        <span class="text-xs">Memuat detail barang...</span>
+                    </div>
+
+                    <div x-show="!detailLoading" class="grid grid-cols-1 gap-6 p-6 lg:grid-cols-2">
+                        {{-- Galeri foto --}}
+                        <div>
+                            <div class="relative aspect-[4/3] w-full overflow-hidden rounded-xl border border-line bg-gray-100">
+                                <template x-if="detailImages.length > 0">
+                                    <img :src="detailImages[detailIndex]?.url" :alt="detail.name"
+                                         class="h-full w-full object-contain">
+                                </template>
+
+                                <template x-if="detailImages.length === 0">
+                                    <div class="flex h-full w-full flex-col items-center justify-center gap-2 text-faint">
+                                        <svg class="h-10 w-10" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5z"/></svg>
+                                        <span class="text-xs">Belum ada foto</span>
+                                    </div>
+                                </template>
+
+                                <template x-if="detailImages.length > 1">
+                                    <div>
+                                        <button type="button" @click="detailPrev()"
+                                                class="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                                        </button>
+                                        <button type="button" @click="detailNext()"
+                                                class="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white transition hover:bg-black/70">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                        </button>
+                                        <div class="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-[11px] font-semibold text-white">
+                                            <span x-text="detailIndex + 1"></span>/<span x-text="detailImages.length"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- Thumbnail --}}
+                            <template x-if="detailImages.length > 1">
+                                <div class="mt-3 flex gap-2 overflow-x-auto pb-1">
+                                    <template x-for="(img, idx) in detailImages" :key="img.id">
+                                        <button type="button" @click="detailIndex = idx"
+                                                class="h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors"
+                                                :class="detailIndex === idx ? 'border-brand' : 'border-line hover:border-brand/60'"
+                                                :title="'Foto ' + (idx + 1)">
+                                            <img :src="img.url" class="h-full w-full object-cover" alt="">
+                                        </button>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+
+                        {{-- Informasi barang --}}
+                        <div class="space-y-5">
+                            <div>
+                                <div class="text-2xl font-bold text-brand">
+                                    Rp<span x-text="formatNumber(detail.price)"></span>
+                                </div>
+                                <div class="mt-2 flex flex-wrap gap-2">
+                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                          :class="statusClass(detail.status)"
+                                          x-text="statusLabel(detail.status)"></span>
+                                    <span class="rounded-full px-2.5 py-0.5 text-xs font-medium"
+                                          :class="verifClass(detail.verification_status)"
+                                          x-text="verifLabel(detail.verification_status)"></span>
+                                    <span x-show="detail.condition"
+                                          class="rounded-full bg-page px-2.5 py-0.5 text-xs font-medium text-muted"
+                                          x-text="detail.condition"></span>
+                                </div>
+                            </div>
+
+                            <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Penjual</dt>
+                                    <dd class="font-medium text-ink" x-text="detail.seller?.name || '-'"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Kategori</dt>
+                                    <dd class="font-medium text-ink" x-text="detail.category?.name || '-'"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Stok</dt>
+                                    <dd class="font-medium text-ink" x-text="detail.stock ?? '-'"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Email Penjual</dt>
+                                    <dd class="truncate font-medium text-ink" x-text="detail.seller?.email || '-'"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Tanggal Posting</dt>
+                                    <dd class="font-medium text-ink" x-text="formatDate(detail.created_at)"></dd>
+                                </div>
+                                <div>
+                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Kedaluwarsa</dt>
+                                    <dd class="font-medium text-ink" x-text="formatDate(detail.expires_at)"></dd>
+                                </div>
+                            </dl>
+
+                            <template x-if="detail.description">
+                                <div>
+                                    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-faint">Deskripsi</h4>
+                                    <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink" x-text="detail.description"></p>
+                                </div>
+                            </template>
+
+                            <template x-if="detail.specification">
+                                <div>
+                                    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-faint">Spesifikasi</h4>
+                                    <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink" x-text="detail.specification"></p>
+                                </div>
+                            </template>
+
+                            <template x-if="detail.completeness">
+                                <div>
+                                    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-faint">Kelengkapan</h4>
+                                    <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink" x-text="detail.completeness"></p>
+                                </div>
+                            </template>
+
+                            <template x-if="detail.sell_reason">
+                                <div>
+                                    <h4 class="text-[11px] font-semibold uppercase tracking-wide text-faint">Alasan Dijual</h4>
+                                    <p class="mt-1 whitespace-pre-line text-sm leading-relaxed text-ink" x-text="detail.sell_reason"></p>
+                                </div>
+                            </template>
+
+                            <template x-if="detail.rejection_note">
+                                <div class="rounded-lg border border-red-200 bg-red-50 p-3">
+                                    <h4 class="text-xs font-semibold text-red-700">Catatan Penolakan</h4>
+                                    <p class="mt-1 whitespace-pre-line text-xs text-red-700" x-text="detail.rejection_note"></p>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
+                </div>
+
+                {{-- Footer --}}
+                <div class="flex shrink-0 justify-end gap-2 border-t border-line bg-gray-50/80 px-6 py-3.5">
+                    <button type="button" @click="closeDetail()" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-gray-200">Tutup</button>
+                    @if(!empty($isMaintenance))
+                    <button type="button" @click="closeDetail(); openEdit(detail.id)"
+                            class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700">
+                        Ubah Barang
+                    </button>
+                    @endif
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @push('scripts')
@@ -399,6 +597,16 @@ function stockManager() {
         photoPreview: null,
         deleteAction: '',
         deleteLabel: '',
+
+        // State modal detail barang
+        showDetailModal: false,
+        detail: {},
+        detailIndex: 0,
+        detailLoading: false,
+
+        get detailImages() {
+            return this.detail && this.detail.images ? this.detail.images : [];
+        },
 
         openCreate() {
             this.isEdit = false;
@@ -442,6 +650,90 @@ function stockManager() {
             } else {
                 this.photoPreview = null;
             }
+        },
+
+        async openDetail(id) {
+            this.showDetailModal = true;
+            this.detailLoading = true;
+            this.detail = {};
+            this.detailIndex = 0;
+
+            try {
+                const res = await fetch(@json(url('admin/stock')) + '/' + id + '/json');
+                if (res.ok) {
+                    this.detail = await res.json();
+                }
+            } catch (e) {
+                console.error('Gagal memuat detail barang:', e);
+            }
+
+            this.detailLoading = false;
+        },
+
+        closeDetail() {
+            this.showDetailModal = false;
+            this.detail = {};
+            this.detailIndex = 0;
+        },
+
+        detailPrev() {
+            const total = this.detailImages.length;
+            if (total < 2) return;
+            this.detailIndex = (this.detailIndex - 1 + total) % total;
+        },
+
+        detailNext() {
+            const total = this.detailImages.length;
+            if (total < 2) return;
+            this.detailIndex = (this.detailIndex + 1) % total;
+        },
+
+        formatNumber(value) {
+            return Number(value || 0).toLocaleString('id-ID');
+        },
+
+        formatDate(value) {
+            if (!value) return '-';
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return '-';
+            return date.toLocaleString('id-ID', {
+                dateStyle: 'medium',
+                timeStyle: 'short',
+            });
+        },
+
+        statusLabel(value) {
+            return {
+                available: 'Tersedia',
+                sold: 'Terjual',
+                hidden: 'Disembunyikan',
+                archived: 'Diarsipkan',
+            }[value] || value || '-';
+        },
+
+        statusClass(value) {
+            return {
+                available: 'bg-green-100 text-green-700',
+                sold: 'bg-blue-100 text-blue-700',
+                hidden: 'bg-gray-100 text-gray-700',
+                archived: 'bg-yellow-100 text-yellow-700',
+            }[value] || 'bg-gray-100 text-gray-700';
+        },
+
+        verifLabel(value) {
+            return {
+                verified: 'Terverifikasi',
+                pending: 'Menunggu Verifikasi',
+                rejected: 'Ditolak',
+            }[value] || value || '-';
+        },
+
+        verifClass(value) {
+            return {
+                verified: 'bg-green-100 text-green-700',
+                pending: 'bg-yellow-100 text-yellow-700',
+                rejected: 'bg-red-100 text-red-700',
+            }[value] || 'bg-gray-100 text-gray-700';
         },
 
         confirmDelete(id, label) {
