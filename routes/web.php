@@ -1,6 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Storage;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DataManagerController;
@@ -15,6 +16,22 @@ use App\Http\Controllers\Admin\AuditController;
 use App\Http\Controllers\Admin\SettingController;
 
 Route::redirect('/', '/admin/login');
+
+// Fallback penyajian file storage. Biasanya Apache sudah melayani lewat
+// symlink public/storage, tapi route ini memastikan gambar tetap tampil
+// meskipun symlink belum dibuat (mis. setelah deploy baru).
+Route::get('/storage/{path}', function (string $path) {
+    abort_if(str_contains($path, '..'), 404);
+    abort_unless(
+        preg_match('/\.(jpe?g|png|webp|gif|svg)$/i', $path) === 1,
+        404
+    );
+
+    $disk = Storage::disk('public');
+    abort_unless($disk->exists($path), 404);
+
+    return $disk->response($path);
+})->where('path', '.*');
 
 Route::prefix('admin')->name('admin.')->group(function() {
     // Guest

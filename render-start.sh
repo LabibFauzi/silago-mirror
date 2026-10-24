@@ -46,6 +46,11 @@ fi
 echo "Ensuring APP_KEY exists..."
 php artisan key:generate --force --no-interaction 2>/dev/null || true
 
+# Pastikan symlink public/storage ada. Tanpa ini file di storage/app/public
+# tidak bisa diakses lewat URL /storage/... (menyebabkan 404 pada gambar).
+echo "Creating storage symlink..."
+php artisan storage:link --force --no-interaction
+
 # Configure Apache to use Render's PORT
 sed -i "s/Listen 80/Listen ${PORT:-80}/" /etc/apache2/ports.conf
 sed -i "s/:80>/:${PORT:-80}>/" /etc/apache2/sites-available/000-default.conf
