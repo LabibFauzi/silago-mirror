@@ -316,22 +316,35 @@
                                 @enderror
                             </div>
 
-                            {{-- 9. Foto Barang --}}
+                            {{-- 9. Foto Barang (Multiple: max 5) --}}
                             <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Foto Barang</label>
-                                <div class="flex items-center gap-3">
-                                    <div class="h-16 w-16 rounded-xl border-2 border-line bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
-                                        <template x-if="photoPreview || formData.photo_url">
-                                            <img :src="photoPreview || formData.photo_url" class="h-full w-full object-cover" alt="Preview">
-                                        </template>
-                                        <template x-if="!photoPreview && !formData.photo_url">
-                                            <svg class="h-6 w-6 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+                                <label class="mb-1.5 block text-xs font-semibold text-ink">Foto Barang <span class="text-muted">(Maksimal 5 foto)</span></label>
+                                <div>
+                                    <input type="file" name="photos[]" accept="image/*" multiple @change="previewPhotos($event)"
+                                           class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border border-line rounded-lg p-1.5 bg-white">
+                                    <span class="text-[11px] text-faint mt-1 block">JPG, PNG, WEBP (Maksimal 5MB per file, hingga 5 file)</span>
+                                    
+                                    {{-- Preview thumbnails --}}
+                                    <div x-show="photoPreviews.length > 0" class="mt-3 flex gap-2 flex-wrap">
+                                        <template x-for="(preview, idx) in photoPreviews" :key="idx">
+                                            <div class="relative h-16 w-16 rounded-lg border-2 border-line bg-gray-50 overflow-hidden shrink-0 shadow-sm">
+                                                <img :src="preview" class="h-full w-full object-cover" alt="">
+                                                <div class="absolute bottom-0 right-0 bg-black/60 px-1 py-0.5 text-[10px] font-bold text-white">
+                                                    <span x-text="idx + 1"></span>
+                                                </div>
+                                            </div>
                                         </template>
                                     </div>
-                                    <div class="flex-1 min-w-0">
-                                        <input type="file" name="photo" accept="image/*" @change="previewPhoto($event)"
-                                               class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border border-line rounded-lg p-1.5 bg-white">
-                                        <span class="text-[11px] text-faint mt-1 block">JPG, PNG, WEBP, SVG (Maksimal 5MB)</span>
+                                    
+                                    {{-- Existing images (when editing) --}}
+                                    <div x-show="isEdit && formData.images && formData.images.length > 0" class="mt-3">
+                                        <p class="text-xs font-medium text-muted mb-2">Foto saat ini:</p>
+                                        <div class="flex gap-2 flex-wrap">
+                                            <template x-for="img in formData.images" :key="img.id">
+                                                <img :src="img.url" class="h-16 w-16 rounded-lg border border-line object-cover" alt="">
+                                            </template>
+                                        </div>
+                                        <p class="text-[11px] text-faint mt-1">Upload foto baru akan menggantikan semua foto lama.</p>
                                     </div>
                                 </div>
                             </div>
@@ -594,7 +607,7 @@ function stockManager() {
         isEdit: wasEdit,
         formAction: oldFormAction || (wasEdit ? '' : @json(route('admin.stock.store'))),
         formData: hasErrors ? oldInputs : { status: 'available', verification_status: 'verified' },
-        photoPreview: null,
+        photoPreviews: [],
         deleteAction: '',
         deleteLabel: '',
 
@@ -612,7 +625,7 @@ function stockManager() {
             this.isEdit = false;
             this.formAction = @json(route('admin.stock.store'));
             this.formData = { status: 'available', verification_status: 'verified' };
-            this.photoPreview = null;
+            this.photoPreviews = [];
             document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
             this.showModal = true;
         },
@@ -621,7 +634,7 @@ function stockManager() {
             this.isEdit = true;
             this.formAction = @json(url('admin/stock')) + '/' + id;
             this.formData = {};
-            this.photoPreview = null;
+            this.photoPreviews = [];
             document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
 
             try {
@@ -640,15 +653,17 @@ function stockManager() {
         closeModal() {
             this.showModal = false;
             this.formData = {};
-            this.photoPreview = null;
+            this.photoPreviews = [];
         },
 
-        previewPhoto(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.photoPreview = URL.createObjectURL(file);
-            } else {
-                this.photoPreview = null;
+        previewPhotos(event) {
+            const files = event.target.files;
+            this.photoPreviews = [];
+            if (files && files.length > 0) {
+                const maxFiles = Math.min(files.length, 5);
+                for (let i = 0; i < maxFiles; i++) {
+                    this.photoPreviews.push(URL.createObjectURL(files[i]));
+                }
             }
         },
 

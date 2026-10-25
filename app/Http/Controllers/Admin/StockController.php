@@ -118,7 +118,8 @@ class StockController extends Controller
             'specification'       => 'nullable|string',
             'completeness'        => 'nullable|string|max:100',
             'sell_reason'         => 'nullable|string',
-            'photo'               => 'nullable|image|mimes:jpg,jpeg,png,webp,svg,gif|max:5120',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
 
         $validator = validator(
@@ -132,7 +133,7 @@ class StockController extends Controller
 
         try {
             DB::transaction(function () use ($request, $validated) {
-                $productData = collect($validated)->except(['photo'])->all();
+                $productData = collect($validated)->except(['photos'])->all();
                 
                 foreach ($productData as $k => $v) {
                     if ($v === '') $productData[$k] = null;
@@ -143,8 +144,10 @@ class StockController extends Controller
                 $product = new Product();
                 $product->forceFill($productData)->save();
 
-                if ($request->hasFile('photo')) {
-                    $this->imageService->create($product, $request->file('photo'), 0);
+                if ($request->hasFile('photos')) {
+                    foreach ($request->file('photos') as $index => $file) {
+                        $this->imageService->create($product, $file, $index);
+                    }
                 }
 
                 $this->auditLogService->log(
@@ -187,7 +190,8 @@ class StockController extends Controller
             'specification'       => 'nullable|string',
             'completeness'        => 'nullable|string|max:100',
             'sell_reason'         => 'nullable|string',
-            'photo'               => 'nullable|image|mimes:jpg,jpeg,png,webp,svg,gif|max:5120',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
 
         $validator = validator(
@@ -201,7 +205,7 @@ class StockController extends Controller
 
         try {
             DB::transaction(function () use ($request, $product, $validated) {
-                $productData = collect($validated)->except(['photo'])->all();
+                $productData = collect($validated)->except(['photos'])->all();
                 
                 foreach ($productData as $k => $v) {
                     if ($v === '') $productData[$k] = null;
@@ -209,12 +213,14 @@ class StockController extends Controller
 
                 $product->forceFill($productData)->save();
 
-                if ($request->hasFile('photo')) {
+                if ($request->hasFile('photos')) {
                     foreach ($product->images()->get() as $oldImg) {
                         $this->imageService->delete($oldImg);
                     }
 
-                    $this->imageService->create($product, $request->file('photo'), 0);
+                    foreach ($request->file('photos') as $index => $file) {
+                        $this->imageService->create($product, $file, $index);
+                    }
                 }
 
                 $this->auditLogService->log(
@@ -299,7 +305,7 @@ class StockController extends Controller
             'specification'       => 'Spesifikasi',
             'completeness'        => 'Kelengkapan',
             'sell_reason'         => 'Alasan Dijual',
-            'photo'               => 'Foto Barang',
+            'photos'              => 'Foto Barang',
         ];
     }
 }
