@@ -85,7 +85,7 @@ class StockController extends Controller
         $data['images'] = $product->images->map(function (ProductImage $image) {
             return [
                 'id' => $image->id,
-                'url' => Storage::url($image->image_path),
+                'url' => $image->url,
                 'sort_order' => $image->sort_order,
             ];
         })->values()->all();

@@ -14,7 +14,7 @@ class DealResource extends JsonResource
             'product' => [
                 'id' => $this->product?->id,
                 'name' => $this->product?->name,
-                'cover_image' => $this->product?->cover_image_url,
+                'cover_image' => $this->product?->image_url,
                 'price' => $this->product?->price,
             ],
             'buyer' => [

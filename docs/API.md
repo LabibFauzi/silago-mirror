@@ -491,7 +491,7 @@ Auth. Toggle: jika exists → delete `favorited=false` else create `favorited=tr
 ```
 
 ### ProductResource
-`id, name, description, condition, specification, completeness, sell_reason, price(float), stock, status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
+`id, name, description, condition, specification, completeness, sell_reason, price(float), stock, status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, cover_image(url|null), seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
 
 ### ProductListResource
 `id, name, price, stock, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`

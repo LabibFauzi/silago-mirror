@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Illuminate\Support\Facades\Storage;
 
 class ProductListResource extends JsonResource
 {
@@ -31,7 +30,7 @@ class ProductListResource extends JsonResource
                 $cover = $this->images->where('sort_order', 0)->first() 
                          ?? $this->images->first(); // fallback jika tidak ada sort_order 0
                          
-                return $cover ? Storage::url($cover->image_path) : null;
+                return $cover?->url;
             }),
 
             // Semua foto produk (untuk carousel/slide di aplikasi mobile).
@@ -42,7 +41,7 @@ class ProductListResource extends JsonResource
                     ->map(function ($image) {
                         return [
                             'id' => $image->id,
-                            'url' => Storage::url($image->image_path),
+                            'url' => $image->url,
                             'sort_order' => $image->sort_order,
                         ];
                     });

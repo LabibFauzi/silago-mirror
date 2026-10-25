@@ -1092,6 +1092,7 @@ components:
         expires_at: { type: string, format: date-time, nullable: true }
         created_at: { type: string, format: date-time }
         updated_at: { type: string, format: date-time }
+        cover_image: { type: string, nullable: true, format: uri }
         seller:
           type: object
           nullable: true
