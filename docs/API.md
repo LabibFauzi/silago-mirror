@@ -264,8 +264,17 @@ Auth, `?status`, `?verification_status`, paginate 15, `ProductListResource`.
 ### 6. Conversations
 
 #### GET /conversations
-Auth, `where buyer_id=me OR seller_id=me`, eager `product.images, buyer, seller, lastMessage`, filter `?q` LIKE product.name, order `updated_at desc`, paginate 20, hitung `unread_count` per conversation (`sender_id != me AND read_at IS NULL`).
+Auth, `where buyer_id=me OR seller_id=me`, eager `product.images, buyer, seller, lastMessage, latestDeal, latestOffer`, filter `?q` LIKE product.name / nama lawan bicara, order `updated_at desc`, paginate 20, `unread_count` dihitung via `withCount`.
+`ConversationResource` sekarang menyertakan `role` (`buyer`/`seller`), `stage` (`chat|negotiation|deal|completed|cancelled`), `product.cover_image`, serta `last_message.{body,type,sender_id,created_at}`.
 → 200 `Paginated<ConversationResource>`
+
+#### GET /conversations/unread-count
+Auth. Total pesan `sender_id != me AND read_at IS NULL` dari semua percakapan.
+→ 200 `{count}`
+
+#### POST /conversations/read-all
+Auth. Tandai semua pesan dari lawan bicara di seluruh percakapan sebagai dibaca.
+→ 200 `{message, count}`
 
 #### POST /products/{product}/conversations
 Auth, `firstOrCreate(product_id, buyer_id=me, seller_id=product.seller_id)`. 403 jika milik sendiri atau `verification_status !== verified || status !== available`.
@@ -277,19 +286,24 @@ Auth, participant only. Return:
 {
   "data": {
     "conversation": {ConversationResource},
-    "last_offer": {"id","offer_price","offer_status"}|null,
-    "active_deal": {"id","status"}|null
+    "last_offer": {"id","sender_id","offer_price","offer_status","parent_offer_id","message","created_at"}|null,
+    "active_deal": {"id","status"}|null,
+    "latest_deal": {"id","status","agreed_price","quantity","completed_at","cancelled_at","cancel_note","actions"}|null
   }
 }
 ```
-`last_offer` = `messages where type=offer latest`, `active_deal` = `MarketplaceDeal where product_id, buyer_id, seller_id, status=agreed`.
+`last_offer` = `messages where type=offer latest`, `active_deal` = deal `agreed` terbaru, `latest_deal` = deal terbaru (agreed/completed/cancelled) + `actions` (`can_generate_qr`, `can_complete`, `can_cancel`, `can_review`).
 
 ---
 
 ### 7. Messages
 
 #### GET /conversations/{conversation}/messages
-Auth, participant only. Query `?after_id` (id >), `?limit` default 30, order `created_at asc`.
+Auth, participant only. Query:
+- tanpa param → 30 pesan **terbaru**, dikembalikan urut lama → baru
+- `?after_id` → pesan dengan id > after_id, urut lama → baru (polling)
+- `?before_id` → 30 pesan sebelum id tersebut (riwayat lama)
+- `?limit` default 30, maksimal 100
 → 200 `[MessageResource]`
 
 #### POST /conversations/{conversation}/messages
@@ -319,11 +333,12 @@ Auth, participant only. `where sender_id != me AND read_at IS NULL → read_at=n
 Business: `OfferService`. Satu conversation hanya 1 offer `pending`. Counter via `parent_offer_id` → set lama `countered`.
 
 #### POST /conversations/{conversation}/offers
-Auth, participant only. Validasi `price >0 && <= product.price` else 400. Body `price`, `?note`, `?parent_offer_id exists messages.id`.
+Auth, participant only. Validasi `price >0 && <= product.price` else 400. Body `price`, `?note`, `?parent_offer_id exists messages.id` (harus dari conversation yang sama).
+`note` disimpan di kolom `messages.message`.
 
 → 201 `MessageResource(type=offer, offer_price, offer_status=pending)` · 409 sudah ada pending tanpa parent
 
-#### POST /offers/{message}/accept
+#### POST /offers/{offer}/accept
 Auth, participant only, recipient only (sender ≠ me) else 403. Body `?quantity int min1 default1`. `OfferService::acceptOffer`:
 - lock offer, cek pending, bukan sender
 - lock conversation+product, cek `stock >= quantity` else 422
@@ -332,9 +347,15 @@ Auth, participant only, recipient only (sender ≠ me) else 403. Body `?quantity
 
 → 201 `DealResource` · 403/409/422
 
-#### POST /offers/{message}/reject
-Auth, participant only, recipient only. `offer_status=rejected`
+#### POST /offers/{offer}/reject
+Auth, participant only, recipient only. `offer_status=rejected` + system message "Penawaran ditolak."
 → 200 `{message:"Offer rejected"}`
+
+#### POST /offers/{offer}/withdraw
+Auth, sender only, status harus `pending`. `offer_status=rejected` + system message "Penawaran ditarik."
+→ 200 `{message:"Offer withdrawn"}` · 403/409
+
+Catatan: setiap accept/reject/withdraw dan complete/cancel deal membuat `messages.type=system` agar perubahan status terlihat oleh polling mobile.
 
 ---
 
@@ -476,10 +497,10 @@ Auth. Toggle: jika exists → delete `favorited=false` else create `favorited=tr
 `id, name, price, stock, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`
 
 ### ConversationResource
-`id, product{id,name,cover_image_url,price,status,verification_status}, other_party{id,name,profile_photo_url,is_verified}, last_message{body truncated 50, created_at diffForHumans}|null, unread_count, updated_at`
+`id, buyer_id, seller_id, role(buyer|seller), stage(chat|negotiation|deal|completed|cancelled), product{id,name,cover_image,price,status,verification_status}, other_party{id,name,profile_photo_url,avatar_url,is_verified}, last_message{body truncated 50, type, sender_id, created_at}|null, unread_count, updated_at`
 
 ### MessageResource
-`id, conversation_id, sender_id, type(text|location|offer), message, offer_price, offer_status, parent_offer_id, location_lat/lng/name/address/accuracy, read_at, created_at`
+`id, conversation_id, sender_id, type(text|location|offer|system), message, offer_price, offer_status, parent_offer_id, location_lat/lng/name/address/accuracy, read_at, created_at`
 
 ### DealResource
 `id, product{id,name,cover_image,price}, buyer{id,name}, seller{id,name}, quantity, agreed_price, total_price, status, agreed_at, completed_at, cancelled_at, cancel_note, created_at`

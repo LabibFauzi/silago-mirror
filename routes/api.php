@@ -61,6 +61,8 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
 
         // Chat dan negosiasi
         Route::get('/conversations',                              [\App\Http\Controllers\Api\V1\ConversationController::class, 'index']);
+        Route::get('/conversations/unread-count',                 [\App\Http\Controllers\Api\V1\ConversationController::class, 'unreadCount']);
+        Route::post('/conversations/read-all',                     [\App\Http\Controllers\Api\V1\ConversationController::class, 'markAllRead']);
         Route::post('/products/{product}/conversations',          [\App\Http\Controllers\Api\V1\ConversationController::class, 'store']);
         Route::get('/conversations/{conversation}',              [\App\Http\Controllers\Api\V1\ConversationController::class, 'show']);
         Route::get('/conversations/{conversation}/messages',     [\App\Http\Controllers\Api\V1\MessageController::class, 'index']);
@@ -69,8 +71,9 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::post('/conversations/{conversation}/offers',      [\App\Http\Controllers\Api\V1\OfferController::class, 'store']);
 
         // Penawaran
-        Route::post('/offers/{message}/accept', [\App\Http\Controllers\Api\V1\OfferController::class, 'accept']);
-        Route::post('/offers/{message}/reject', [\App\Http\Controllers\Api\V1\OfferController::class, 'reject']);
+        Route::post('/offers/{offer}/accept', [\App\Http\Controllers\Api\V1\OfferController::class, 'accept']);
+        Route::post('/offers/{offer}/reject', [\App\Http\Controllers\Api\V1\OfferController::class, 'reject']);
+        Route::post('/offers/{offer}/withdraw', [\App\Http\Controllers\Api\V1\OfferController::class, 'withdraw']);
 
         // Transaksi
         Route::get('/deals',                      [\App\Http\Controllers\Api\V1\DealController::class, 'index']);

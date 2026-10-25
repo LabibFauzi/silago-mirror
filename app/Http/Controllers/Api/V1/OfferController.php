@@ -25,20 +25,30 @@ class OfferController extends Controller
 
         // Validasi harga > 0 dan <= product.price (N3)
         $product = $conversation->product;
+        if (! $product) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], 404);
+        }
+
         if ($request->price <= 0 || $request->price > $product->price) {
             return response()->json(['message' => 'Harga penawaran tidak valid.'], 400);
         }
 
         try {
-            $offer = $offerService->createOffer($conversation, $userId, $request->price, $request->note, $request->parent_offer_id);
-            
+            $offer = $offerService->createOffer(
+                conversation: $conversation,
+                senderId: $userId,
+                price: (float) $request->price,
+                note: $request->note,
+                parentOfferId: $request->filled('parent_offer_id') ? (int) $request->parent_offer_id : null,
+            );
+
             $recipientId = $conversation->buyer_id === $userId ? $conversation->seller_id : $conversation->buyer_id;
-            $type = $request->parent_offer_id ? 'offerDibalas' : 'offerBaru';
-            
-            $notificationService->send($recipientId, $type, [
-                'conversation_id' => $conversation->id,
-                'offer_id' => $offer->id,
-            ]);
+
+            if ($request->filled('parent_offer_id')) {
+                $notificationService->offerDibalas($recipientId, $conversation->id);
+            } else {
+                $notificationService->offerBaru($recipientId, $conversation->id);
+            }
 
             return (new MessageResource($offer))->response()->setStatusCode(201);
         } catch (\Exception $e) {
@@ -63,11 +73,22 @@ class OfferController extends Controller
         try {
             $deal = $offerService->acceptOffer($offer, $userId, $request->quantity ?? 1);
             
-            $notificationService->send($offer->sender_id, 'offerDisetujui', [
-                'deal_id' => $deal->id,
-            ]);
+            $notificationService->offerDisetujui($offer->sender_id, $deal->id);
 
             return (new DealResource($deal))->response()->setStatusCode(201);
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 400;
+            return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
+        }
+    }
+
+    public function withdraw(Request $request, Message $offer, OfferService $offerService)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $offerService->withdrawOffer($offer, $userId);
+            return response()->json(['message' => 'Offer withdrawn'], 200);
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
             return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
@@ -90,9 +111,7 @@ class OfferController extends Controller
         try {
             $offerService->rejectOffer($offer, $userId);
             
-            $notificationService->send($offer->sender_id, 'offerDitolak', [
-                'offer_id' => $offer->id,
-            ]);
+            $notificationService->offerDitolak($offer->sender_id, $conversation->id);
 
             return response()->json(['message' => 'Offer rejected'], 200);
         } catch (\Exception $e) {

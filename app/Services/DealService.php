@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Conversation;
 use App\Models\MarketplaceDeal;
 use App\Models\Message;
 use App\Models\Product;
@@ -48,7 +49,7 @@ class DealService
      * Menyelesaikan deal lewat QR token atau kode 6 digit.
      * Hanya pembeli pada deal, status harus agreed, token belum kedaluwarsa.
      */
-    public function complete(MarketplaceDeal $deal, string $input, bool $isCode = false, ?float $lat = null, ?float $lng = null): void
+    public function complete(MarketplaceDeal $deal, string $input, bool $isCode = false, ?float $lat = null, ?float $lng = null): MarketplaceDeal
     {
         DB::transaction(function () use ($deal, $input, $isCode, $lat, $lng) {
             /** @var MarketplaceDeal $deal */
@@ -95,11 +96,23 @@ class DealService
                 'completion_code_hash'       => null,
                 'completion_token_expires_at' => null,
             ]);
+
+            $this->addSystemMessage(
+                $deal->conversation_id,
+                $deal->buyer_id,
+                'Transaksi selesai. Terima kasih!'
+            );
+
+            Conversation::whereKey($deal->conversation_id)->update(['updated_at' => now()]);
         });
+
+        $deal->refresh();
 
         // Notifikasi setelah commit
         $this->notif->transaksiSelesai($deal->buyer_id, $deal->id);
         $this->notif->transaksiSelesai($deal->seller_id, $deal->id);
+
+        return $deal;
     }
 
     /**
@@ -132,9 +145,27 @@ class DealService
                 'completion_code_hash'       => null,
                 'completion_token_expires_at' => null,
             ]);
+
+            $cancelText = 'Transaksi dibatalkan.';
+            if ($note) {
+                $cancelText .= ' Alasan: ' . $note;
+            }
+
+            $this->addSystemMessage($deal->conversation_id, $cancelledBy, $cancelText);
+            Conversation::whereKey($deal->conversation_id)->update(['updated_at' => now()]);
         });
 
         $otherId = $deal->buyer_id === $cancelledBy ? $deal->seller_id : $deal->buyer_id;
         $this->notif->transaksiDibatalkan($otherId, $deal->id);
+    }
+
+    private function addSystemMessage(int $conversationId, int $senderId, string $message): void
+    {
+        Message::create([
+            'conversation_id' => $conversationId,
+            'sender_id'       => $senderId,
+            'type'            => 'system',
+            'message'         => $message,
+        ]);
     }
 }

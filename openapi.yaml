@@ -513,6 +513,22 @@ paths:
       responses:
         '200': { description: Paginated ConversationResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedConversation" } } } }
 
+  /conversations/unread-count:
+    get:
+      tags: [Conversations]
+      summary: Total pesan belum dibaca dari semua percakapan
+      operationId: getConversationsUnreadCount
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { count: { type: integer } } } } } }
+
+  /conversations/read-all:
+    post:
+      tags: [Conversations]
+      summary: Tandai semua pesan sebagai sudah dibaca
+      operationId: markAllConversationsRead
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string }, count: { type: integer } } } } } }
+
   /products/{product}/conversations:
     post:
       tags: [Conversations]
@@ -549,29 +565,54 @@ paths:
                         type: object
                         properties:
                           id: { type: integer }
+                          sender_id: { type: integer }
                           offer_price: { type: number }
                           offer_status: { type: string, enum: [pending, accepted, rejected, countered] }
+                          parent_offer_id: { type: integer, nullable: true }
+                          message: { type: string, nullable: true, description: "Catatan penawaran" }
+                          created_at: { type: string, format: date-time }
                       active_deal:
                         nullable: true
                         type: object
                         properties:
                           id: { type: integer }
                           status: { type: string }
+                      latest_deal:
+                        nullable: true
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          status: { type: string, enum: [agreed, completed, cancelled] }
+                          agreed_price: { type: number }
+                          quantity: { type: integer }
+                          completed_at: { type: string, format: date-time, nullable: true }
+                          cancelled_at: { type: string, format: date-time, nullable: true }
+                          cancel_note: { type: string, nullable: true }
+                          actions:
+                            type: object
+                            properties:
+                              can_generate_qr: { type: boolean }
+                              can_complete: { type: boolean }
+                              can_cancel: { type: boolean }
+                              can_review: { type: boolean }
         '403': { $ref: "#/components/responses/Forbidden" }
 
   /conversations/{conversation}/messages:
     get:
       tags: [Messages]
-      summary: Daftar pesan (participant only, ?after_id & ?limit default 30)
+      summary: "Daftar pesan (default: 30 pesan terbaru; ?after_id untuk polling; ?before_id untuk riwayat lama)"
       operationId: listMessages
       parameters:
         - $ref: "#/components/parameters/ConversationId"
         - name: after_id
           in: query
           schema: { type: integer }
+        - name: before_id
+          in: query
+          schema: { type: integer }
         - name: limit
           in: query
-          schema: { type: integer, default: 30 }
+          schema: { type: integer, default: 30, maximum: 100 }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MessageResource" } } } } }
     post:
@@ -632,13 +673,13 @@ paths:
         '400': { description: Harga tidak valid / ada pending }
         '409': { description: Sudah ada penawaran pending }
 
-  /offers/{message}/accept:
+  /offers/{offer}/accept:
     post:
       tags: [Offers]
       summary: Terima penawaran (recipient only, kurangi stok, buat deal agreed)
       operationId: acceptOffer
       parameters:
-        - name: message
+        - name: offer
           in: path
           required: true
           schema: { type: integer, description: "Message id bertipe offer" }
@@ -654,19 +695,34 @@ paths:
         '403': { description: Tidak bisa terima penawaran sendiri }
         '409': { description: Sudah ada deal aktif / offer tidak pending }
 
-  /offers/{message}/reject:
+  /offers/{offer}/reject:
     post:
       tags: [Offers]
       summary: Tolak penawaran (recipient only)
       operationId: rejectOffer
       parameters:
-        - name: message
+        - name: offer
           in: path
           required: true
           schema: { type: integer }
       responses:
         '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Offer rejected" } } } } } }
         '403': { description: Tidak bisa tolak penawaran sendiri }
+
+  /offers/{offer}/withdraw:
+    post:
+      tags: [Offers]
+      summary: Tarik penawaran sendiri (sender only, status pending)
+      operationId: withdrawOffer
+      parameters:
+        - name: offer
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Offer withdrawn" } } } } } }
+        '403': { description: Bukan pengirim penawaran }
+        '409': { description: Penawaran sudah tidak pending }
 
   # ── Deals ──
   /deals:
@@ -1092,12 +1148,18 @@ components:
       type: object
       properties:
         id: { type: integer }
+        buyer_id: { type: integer }
+        seller_id: { type: integer }
+        role: { type: string, enum: [buyer, seller], description: "Peran user yang sedang login" }
+        stage:
+          type: string
+          enum: [chat, negotiation, deal, completed, cancelled]
         product:
           type: object
           properties:
             id: { type: integer }
             name: { type: string }
-            cover_image_url: { type: string, nullable: true }
+            cover_image: { type: string, nullable: true }
             price: { type: number }
             status: { type: string }
             verification_status: { type: string }
@@ -1107,13 +1169,16 @@ components:
             id: { type: integer }
             name: { type: string }
             profile_photo_url: { type: string, nullable: true }
+            avatar_url: { type: string, nullable: true }
             is_verified: { type: boolean }
         last_message:
           nullable: true
           type: object
           properties:
             body: { type: string }
-            created_at: { type: string, description: "diffForHumans" }
+            type: { type: string, enum: [text, offer, location, system] }
+            sender_id: { type: integer }
+            created_at: { type: string, format: date-time }
         unread_count: { type: integer }
         updated_at: { type: string, format: date-time }
 
@@ -1123,8 +1188,8 @@ components:
         id: { type: integer }
         conversation_id: { type: integer }
         sender_id: { type: integer }
-        type: { type: string, enum: [text, location, offer] }
-        message: { type: string, nullable: true }
+        type: { type: string, enum: [text, location, offer, system] }
+        message: { type: string, nullable: true, description: "Teks pesan; untuk offer berisi catatan penawaran" }
         offer_price: { type: number, nullable: true }
         offer_status: { type: string, nullable: true, enum: [pending, accepted, rejected, countered] }
         parent_offer_id: { type: integer, nullable: true }

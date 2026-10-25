@@ -19,8 +19,11 @@ return new class extends Migration
             $table->unique(['product_id', 'buyer_id', 'seller_id']);
         });
 
-        // Add check constraint so buyer and seller are not the same
-        DB::statement('ALTER TABLE conversations ADD CONSTRAINT check_buyer_seller_different CHECK (buyer_id != seller_id)');
+        // Add check constraint so buyer and seller are not the same.
+        // SQLite (dipakai untuk test) tidak mendukung ALTER TABLE ADD CONSTRAINT.
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE conversations ADD CONSTRAINT check_buyer_seller_different CHECK (buyer_id != seller_id)');
+        }
     }
 
     public function down(): void

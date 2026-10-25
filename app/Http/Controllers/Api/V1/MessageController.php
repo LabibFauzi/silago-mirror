@@ -23,13 +23,33 @@ class MessageController extends Controller
         }
 
         $query = $conversation->messages();
+        $limit = min(max((int) $request->input('limit', 30), 1), 100);
 
         if ($request->filled('after_id')) {
-            $query->where('id', '>', $request->after_id);
+            // Polling: ambil pesan baru setelah id terakhir, urut lama -> baru.
+            $messages = $query
+                ->where('id', '>', (int) $request->after_id)
+                ->orderBy('id', 'asc')
+                ->limit($limit)
+                ->get();
+        } elseif ($request->filled('before_id')) {
+            // Muat riwayat lama: ambil N pesan sebelum id tertentu.
+            $messages = $query
+                ->where('id', '<', (int) $request->before_id)
+                ->orderBy('id', 'desc')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
+        } else {
+            // Muat awal: N pesan terbaru, tetap ditampilkan urut lama -> baru.
+            $messages = $query
+                ->orderBy('id', 'desc')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
         }
-
-        $limit = $request->input('limit', 30);
-        $messages = $query->orderBy('created_at', 'asc')->limit($limit)->get();
 
         return MessageResource::collection($messages);
     }
@@ -60,10 +80,7 @@ class MessageController extends Controller
 
         // Kirim notifikasi pesanBaru ke pihak lain
         $recipientId = $conversation->buyer_id === $userId ? $conversation->seller_id : $conversation->buyer_id;
-        $notificationService->send($recipientId, 'pesanBaru', [
-            'conversation_id' => $conversation->id,
-            'message_id' => $message->id,
-        ]);
+        $notificationService->pesanBaru($recipientId, $conversation->id);
 
         return new MessageResource($message);
     }

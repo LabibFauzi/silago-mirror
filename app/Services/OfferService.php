@@ -25,10 +25,38 @@ class OfferService
         Conversation $conversation,
         int $senderId,
         float $price,
+        ?string $note = null,
         ?int $parentOfferId = null,
     ): Message {
-        return DB::transaction(function () use ($conversation, $senderId, $price, $parentOfferId) {
+        return DB::transaction(function () use ($conversation, $senderId, $price, $note, $parentOfferId) {
             $conversation = Conversation::lockForUpdate()->findOrFail($conversation->id);
+
+            $hasActiveDeal = MarketplaceDeal::where('conversation_id', $conversation->id)
+                ->where('status', 'agreed')
+                ->exists();
+
+            if ($hasActiveDeal) {
+                throw new \RuntimeException('Masih ada deal aktif. Selesaikan atau batalkan deal terlebih dahulu.', 409);
+            }
+
+            $hasCompletedDeal = MarketplaceDeal::where('conversation_id', $conversation->id)
+                ->where('status', 'completed')
+                ->exists();
+
+            if ($hasCompletedDeal) {
+                throw new \RuntimeException('Transaksi pada percakapan ini sudah selesai.', 409);
+            }
+
+            if ($parentOfferId !== null) {
+                $parent = Message::where('id', $parentOfferId)
+                    ->where('conversation_id', $conversation->id)
+                    ->where('type', 'offer')
+                    ->first();
+
+                if (! $parent) {
+                    throw new \RuntimeException('Penawaran induk tidak ditemukan.', 422);
+                }
+            }
 
             // Hanya satu offer pending per percakapan
             $existing = Message::where('conversation_id', $conversation->id)
@@ -50,6 +78,7 @@ class OfferService
                 'conversation_id'  => $conversation->id,
                 'sender_id'        => $senderId,
                 'type'             => 'offer',
+                'message'          => $note,
                 'offer_price'      => $price,
                 'offer_status'     => 'pending',
                 'parent_offer_id'  => $parentOfferId,
@@ -116,6 +145,13 @@ class OfferService
                 'agreed_at'          => now(),
             ]);
 
+            $this->addSystemMessage(
+                $conversation,
+                $acceptorId,
+                'Penawaran Rp' . number_format((float) $offer->offer_price, 0, ',', '.')
+                    . ' disetujui. Deal telah dibuat.'
+            );
+
             $conversation->touch();
 
             return $deal;
@@ -139,6 +175,44 @@ class OfferService
             }
 
             $offer->update(['offer_status' => 'rejected']);
+
+            $conversation = Conversation::findOrFail($offer->conversation_id);
+            $this->addSystemMessage($conversation, $rejectorId, 'Penawaran ditolak.');
+            $conversation->touch();
         });
+    }
+
+    /**
+     * Menarik penawaran sendiri yang masih pending.
+     */
+    public function withdrawOffer(Message $offer, int $senderId): void
+    {
+        DB::transaction(function () use ($offer, $senderId) {
+            $offer = Message::lockForUpdate()->findOrFail($offer->id);
+
+            if ($offer->offer_status !== 'pending') {
+                throw new \RuntimeException('Penawaran sudah tidak tersedia.', 409);
+            }
+
+            if ($offer->sender_id !== $senderId) {
+                throw new \RuntimeException('Kamu hanya dapat menarik penawaran sendiri.', 403);
+            }
+
+            $offer->update(['offer_status' => 'rejected']);
+
+            $conversation = Conversation::findOrFail($offer->conversation_id);
+            $this->addSystemMessage($conversation, $senderId, 'Penawaran ditarik.');
+            $conversation->touch();
+        });
+    }
+
+    private function addSystemMessage(Conversation $conversation, int $senderId, string $message): Message
+    {
+        return Message::create([
+            'conversation_id' => $conversation->id,
+            'sender_id'       => $senderId,
+            'type'            => 'system',
+            'message'         => $message,
+        ]);
     }
 }

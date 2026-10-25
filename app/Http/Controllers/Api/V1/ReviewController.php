@@ -40,10 +40,7 @@ class ReviewController extends Controller
             ]);
         });
 
-        $notificationService->send($revieweeId, 'ulasan_baru', [
-            'deal_id' => $deal->id,
-            'review_id' => $review->id,
-        ]);
+        $notificationService->ulasanBaru($revieweeId, $deal->id);
 
         return (new ReviewResource($review))->response()->setStatusCode(201);
     }

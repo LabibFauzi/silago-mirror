@@ -85,6 +85,11 @@ class MarketplaceDeal extends Model
         return $this->hasOne(Review::class);
     }
 
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class, 'marketplace_deal_id');
+    }
+
     public function reports(): HasMany
     {
         return $this->hasMany(Report::class);

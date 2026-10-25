@@ -99,6 +99,11 @@ class NotificationService
         $this->send($userId, 'Barang Diarsipkan', 'Barang kamu telah melewati masa tayang dan diarsipkan.', 'barang_diarsipkan', $productId);
     }
 
+    public function ulasanBaru(int $userId, int $dealId): void
+    {
+        $this->send($userId, 'Ulasan Baru', 'Kamu mendapat ulasan baru dari transaksi.', 'ulasan_baru', $dealId);
+    }
+
     public function laporanDiproses(int $userId, int $reportId): void
     {
         $this->send($userId, 'Laporan Diproses', 'Laporan kamu sedang ditinjau oleh staf.', 'laporan_diproses', $reportId);

@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Conversation extends Model
 {
@@ -37,5 +38,23 @@ class Conversation extends Model
     public function marketplaceDeals(): HasMany
     {
         return $this->hasMany(MarketplaceDeal::class);
+    }
+
+    public function latestDeal(): HasOne
+    {
+        return $this->hasOne(MarketplaceDeal::class)->latestOfMany();
+    }
+
+    public function latestOffer(): HasOne
+    {
+        return $this->hasOne(Message::class)->ofMany(
+            ['id' => 'max'],
+            fn ($query) => $query->where('type', 'offer'),
+        );
+    }
+
+    public function lastMessage(): HasOne
+    {
+        return $this->hasOne(Message::class)->latestOfMany();
     }
 }

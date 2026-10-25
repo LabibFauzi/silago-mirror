@@ -21,8 +21,10 @@ return new class extends Migration
             $table->unique(['marketplace_deal_id', 'reviewer_id']);
         });
 
-        DB::statement('ALTER TABLE reviews ADD CONSTRAINT check_rating_range CHECK (rating >= 1 AND rating <= 5)');
-        DB::statement('ALTER TABLE reviews ADD CONSTRAINT check_reviewer_reviewee_different CHECK (reviewer_id != reviewee_id)');
+        if (Schema::getConnection()->getDriverName() !== 'sqlite') {
+            DB::statement('ALTER TABLE reviews ADD CONSTRAINT check_rating_range CHECK (rating >= 1 AND rating <= 5)');
+            DB::statement('ALTER TABLE reviews ADD CONSTRAINT check_reviewer_reviewee_different CHECK (reviewer_id != reviewee_id)');
+        }
     }
 
     public function down(): void

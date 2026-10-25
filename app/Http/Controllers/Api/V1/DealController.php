@@ -92,14 +92,17 @@ class DealController extends Controller
         }
 
         try {
-            // Kita pass token atau code
-            $payload = $request->filled('token') ? ['token' => $request->token] : ['code' => $request->code];
-            if ($request->filled('lat')) {
-                $payload['lat'] = $request->lat;
-                $payload['lng'] = $request->lng;
-            }
+            $isCode = $request->filled('code');
+            $input = $isCode ? (string) $request->code : (string) $request->token;
 
-            $deal = $dealService->complete($deal, $payload);
+            $deal = $dealService->complete(
+                deal: $deal,
+                input: $input,
+                isCode: $isCode,
+                lat: $request->filled('lat') ? (float) $request->lat : null,
+                lng: $request->filled('lng') ? (float) $request->lng : null,
+            );
+
             return new DealResource($deal);
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
