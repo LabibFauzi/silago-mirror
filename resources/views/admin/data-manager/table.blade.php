@@ -95,13 +95,21 @@
                                     <span class="inline-block rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">Tidak</span>
                                 @endif
                             @elseif(in_array($col, ['image_path', 'profile_photo', 'avatar']) || ($col === 'icon' && $record->{$col} && (str_contains($record->{$col}, '/') || str_contains($record->{$col}, '.'))))
-                                @if($record->{$col})
+                                @php
+                                    $imageUrl = null;
+                                    if ($col === 'image_path' && $record instanceof \App\Models\ProductImage) {
+                                        $imageUrl = $record->url;
+                                    } elseif ($record->{$col}) {
+                                        $imageUrl = str_starts_with($record->{$col}, 'http') ? $record->{$col} : \Illuminate\Support\Facades\Storage::url($record->{$col});
+                                    }
+                                @endphp
+                                @if($imageUrl)
                                     <div class="flex items-center gap-2">
-                                        <img src="{{ str_starts_with($record->{$col}, 'http') ? $record->{$col} : \Illuminate\Support\Facades\Storage::url($record->{$col}) }}" 
+                                        <img src="{{ $imageUrl }}" 
                                              alt="" 
                                              class="h-9 w-9 rounded-lg object-cover border border-line bg-gray-50 shrink-0"
                                              onerror="this.style.display='none'">
-                                        <span class="text-xs text-muted truncate max-w-[120px]">{{ $record->{$col} }}</span>
+                                        <span class="text-xs text-muted truncate max-w-[120px]">{{ $record->{$col} ?: 'Tersimpan di database' }}</span>
                                     </div>
                                 @else
                                     <span class="text-faint text-xs">-</span>

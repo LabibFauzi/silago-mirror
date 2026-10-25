@@ -9,11 +9,10 @@ use App\Http\Resources\ProductListResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ContentScanner;
+use App\Services\ProductImageService;
 use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProductController extends Controller
@@ -90,13 +89,17 @@ class ProductController extends Controller
     /**
      * Simpan produk baru.
      */
-    public function store(StoreProductRequest $request, ContentScanner $scanner, SettingService $settingService)
-    {
+    public function store(
+        StoreProductRequest $request,
+        ContentScanner $scanner,
+        SettingService $settingService,
+        ProductImageService $imageService
+    ) {
         $activeDays = $settingService->getInt('listing_active_days', 30);
         
         [$scanResult, $scanNote] = $scanner->scan($request->name, $request->description);
 
-        $product = DB::transaction(function () use ($request, $activeDays, $scanResult, $scanNote) {
+        $product = DB::transaction(function () use ($request, $activeDays, $scanResult, $scanNote, $imageService) {
             $prod = new Product($request->validated());
             $prod->seller_id = $request->user()->id;
             $prod->status = 'available';
@@ -111,14 +114,7 @@ class ProductController extends Controller
 
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $index => $file) {
-                    $extension = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $prod->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => $index,
-                    ]);
+                    $imageService->create($prod, $file, $index);
                 }
             }
 
@@ -136,8 +132,12 @@ class ProductController extends Controller
     /**
      * Update produk.
      */
-    public function update(UpdateProductRequest $request, Product $product, ContentScanner $scanner)
-    {
+    public function update(
+        UpdateProductRequest $request,
+        Product $product,
+        ContentScanner $scanner,
+        ProductImageService $imageService
+    ) {
         if ($request->user()->id !== $product->seller_id) {
             abort(403, 'Anda tidak berhak mengubah produk ini.');
         }
@@ -164,7 +164,7 @@ class ProductController extends Controller
             [$scanResult, $scanNote] = [$product->scan_result, $product->scan_note];
         }
 
-        $updatedProduct = DB::transaction(function () use ($request, $product, $needsVerification, $scanResult, $scanNote) {
+        $updatedProduct = DB::transaction(function () use ($request, $product, $needsVerification, $scanResult, $scanNote, $imageService) {
             // Lock baris untuk update agar aman
             $lockedProduct = Product::where('id', $product->id)->lockForUpdate()->first();
             
@@ -179,23 +179,14 @@ class ProductController extends Controller
             $lockedProduct->save();
 
             if ($request->hasFile('photos')) {
-                // Hapus foto lama
-                $oldImages = $lockedProduct->images()->get();
-                foreach ($oldImages as $img) {
-                    Storage::disk('public')->delete($img->image_path);
-                    $img->delete();
+                // Hapus foto lama (file disk maupun data di database).
+                foreach ($lockedProduct->images()->get() as $img) {
+                    $imageService->delete($img);
                 }
 
-                // Simpan foto baru
+                // Simpan foto baru ke database.
                 foreach ($request->file('photos') as $index => $file) {
-                    $extension = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $lockedProduct->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => $index,
-                    ]);
+                    $imageService->create($lockedProduct, $file, $index);
                 }
             }
 
@@ -210,7 +201,7 @@ class ProductController extends Controller
     /**
      * Hapus produk.
      */
-    public function destroy(Request $request, Product $product)
+    public function destroy(Request $request, Product $product, ProductImageService $imageService)
     {
         if ($request->user()->id !== $product->seller_id) {
             abort(403, 'Anda tidak berhak menghapus produk ini.');
@@ -225,17 +216,14 @@ class ProductController extends Controller
             abort(409, 'Tidak dapat menghapus produk karena sudah ada kesepakatan.');
         }
 
-        DB::transaction(function () use ($product) {
+        DB::transaction(function () use ($product, $imageService) {
             $lockedProduct = Product::where('id', $product->id)->lockForUpdate()->first();
             
-            // Hapus foto dari storage
-            $images = $lockedProduct->images()->get();
-            foreach ($images as $img) {
-                Storage::disk('public')->delete($img->image_path);
+            // Hapus foto dari storage/database.
+            foreach ($lockedProduct->images()->get() as $img) {
+                $imageService->delete($img);
             }
             
-            // Delete gambar dari db dan sembunyikan atau hapus produk
-            $lockedProduct->images()->delete();
             $lockedProduct->status = 'hidden';
             $lockedProduct->save();
             // Alternatif: $lockedProduct->delete(); tapi instruksi menyebutkan "Delete atau soft-hide"

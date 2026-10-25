@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\ProductImageController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DataManagerController;
@@ -32,6 +33,10 @@ Route::get('/storage/{path}', function (string $path) {
 
     return $disk->response($path);
 })->where('path', '.*');
+
+// Gambar produk yang disimpan langsung di database (PostgreSQL/Supabase).
+Route::get('/media/product-images/{productImage}', [ProductImageController::class, 'show'])
+    ->name('product-images.show');
 
 Route::prefix('admin')->name('admin.')->group(function() {
     // Guest

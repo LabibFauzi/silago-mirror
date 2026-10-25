@@ -496,6 +496,10 @@ Auth. Toggle: jika exists → delete `favorited=false` else create `favorited=tr
 ### ProductListResource
 `id, name, price, stock, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`
 
+Catatan URL gambar produk: nilai `cover_image` dan `images[].url` dapat berupa URL absolut, path lama `/storage/...`, atau path `/media/product-images/{id}` untuk gambar yang tersimpan di database (PostgreSQL/Supabase). Klien menempelkan path relatif ke origin API.
+
+Gambar baru disimpan di tabel `product_image_data`. Untuk memindahkan gambar lama yang masih ada di disk ke database sebelum redeploy, jalankan `php artisan images:backfill` di container lama.
+
 ### ConversationResource
 `id, buyer_id, seller_id, role(buyer|seller), stage(chat|negotiation|deal|completed|cancelled), product{id,name,cover_image,price,status,verification_status}, other_party{id,name,profile_photo_url,avatar_url,is_verified}, last_message{body truncated 50, type, sender_id, created_at}|null, unread_count, updated_at`
 

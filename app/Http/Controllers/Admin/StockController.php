@@ -8,20 +8,20 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\ProductImageService;
 use App\Services\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class StockController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly SettingService $settingService
+        private readonly SettingService $settingService,
+        private readonly ProductImageService $imageService
     ) {}
 
     public function index(Request $request): View
@@ -144,15 +144,7 @@ class StockController extends Controller
                 $product->forceFill($productData)->save();
 
                 if ($request->hasFile('photo')) {
-                    $file = $request->file('photo');
-                    $ext = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $ext;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $product->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => 0,
-                    ]);
+                    $this->imageService->create($product, $request->file('photo'), 0);
                 }
 
                 $this->auditLogService->log(
@@ -218,22 +210,11 @@ class StockController extends Controller
                 $product->forceFill($productData)->save();
 
                 if ($request->hasFile('photo')) {
-                    foreach ($product->images as $oldImg) {
-                        if ($oldImg->image_path && Storage::disk('public')->exists($oldImg->image_path)) {
-                            Storage::disk('public')->delete($oldImg->image_path);
-                        }
+                    foreach ($product->images()->get() as $oldImg) {
+                        $this->imageService->delete($oldImg);
                     }
-                    $product->images()->delete();
 
-                    $file = $request->file('photo');
-                    $ext = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $ext;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $product->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => 0,
-                    ]);
+                    $this->imageService->create($product, $request->file('photo'), 0);
                 }
 
                 $this->auditLogService->log(
@@ -268,10 +249,8 @@ class StockController extends Controller
                 $name = $product->name;
                 $id = $product->id;
 
-                foreach ($product->images as $img) {
-                    if ($img->image_path && Storage::disk('public')->exists($img->image_path)) {
-                        Storage::disk('public')->delete($img->image_path);
-                    }
+                foreach ($product->images()->get() as $img) {
+                    $this->imageService->delete($img);
                 }
 
                 $product->delete();

@@ -566,6 +566,11 @@ class DataManagerController extends Controller
             }
         }
 
+        // Foto produk yang tersimpan di database tidak punya image_path.
+        if ($table === 'product_images' && $record->url) {
+            $data['image_path_url'] = $record->url;
+        }
+
         // Normalisasi format datetime untuk input type="datetime-local" (YYYY-MM-DDTHH:mm)
         foreach ($data as $key => $val) {
             if ($val && (str_ends_with($key, '_at') || in_array($key, ['expires_at', 'scheduled_at', 'sent_at']))) {
@@ -624,9 +629,20 @@ class DataManagerController extends Controller
         }
 
         // Upload file gambar jika ada
+        $pendingImageData = null;
         foreach ($imageFields as $field => $folder) {
             if ($request->hasFile($field)) {
                 $file = $request->file($field);
+
+                if ($table === 'product_images') {
+                    // Foto produk disimpan di database, bukan disk Render.
+                    $data[$field] = null;
+                    $data['has_data'] = true;
+                    $data['mime_type'] = $file->getMimeType() ?: 'image/jpeg';
+                    $pendingImageData = base64_encode(file_get_contents($file->getRealPath()));
+                    continue;
+                }
+
                 $ext = $file->getClientOriginalExtension() ?: 'webp';
                 $filename = Str::uuid() . '.' . $ext;
                 $path = $file->storeAs($folder, $filename, 'public');
@@ -640,10 +656,14 @@ class DataManagerController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($config, $data, $table) {
+            DB::transaction(function () use ($config, $data, $table, $pendingImageData) {
                 $modelClass = $config['model'];
                 $record = new $modelClass();
                 $record->forceFill($data)->save();
+
+                if ($table === 'product_images' && $pendingImageData !== null) {
+                    $record->data()->create(['data' => $pendingImageData]);
+                }
 
                 $this->auditLogService->log(
                     'data_manager',
@@ -722,15 +742,31 @@ class DataManagerController extends Controller
         }
 
         // Upload file gambar baru jika ada
+        $pendingImageData = null;
         foreach ($imageFields as $field => $folder) {
             if ($request->hasFile($field)) {
+                $file = $request->file($field);
+
+                if ($table === 'product_images') {
+                    // Foto produk disimpan di database, bukan disk Render.
+                    $oldPath = $record->{$field};
+                    if ($oldPath && ! str_starts_with($oldPath, 'http://') && ! str_starts_with($oldPath, 'https://') && Storage::disk('public')->exists($oldPath)) {
+                        Storage::disk('public')->delete($oldPath);
+                    }
+
+                    $data[$field] = null;
+                    $data['has_data'] = true;
+                    $data['mime_type'] = $file->getMimeType() ?: 'image/jpeg';
+                    $pendingImageData = base64_encode(file_get_contents($file->getRealPath()));
+                    continue;
+                }
+
                 // Hapus file lama jika ada di storage
                 $oldPath = $record->{$field};
                 if ($oldPath && Storage::disk('public')->exists($oldPath)) {
                     Storage::disk('public')->delete($oldPath);
                 }
 
-                $file = $request->file($field);
                 $ext = $file->getClientOriginalExtension() ?: 'webp';
                 $filename = Str::uuid() . '.' . $ext;
                 $path = $file->storeAs($folder, $filename, 'public');
@@ -751,9 +787,14 @@ class DataManagerController extends Controller
         }
 
         try {
-            DB::transaction(function () use ($config, $data, $table, $record) {
+            DB::transaction(function () use ($config, $data, $table, $record, $pendingImageData) {
                 $old = $record->toArray();
                 $record->forceFill($data)->save();
+
+                if ($table === 'product_images' && $pendingImageData !== null) {
+                    $record->data()->delete();
+                    $record->data()->create(['data' => $pendingImageData]);
+                }
 
                 $this->auditLogService->log(
                     'data_manager',
