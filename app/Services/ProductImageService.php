@@ -27,7 +27,7 @@ class ProductImageService
         }
 
         $image = $product->images()->create([
-            'image_path' => null,
+            'image_path' => '',
             'has_data' => true,
             'mime_type' => $this->mimeType($file),
             'sort_order' => $sortOrder,
