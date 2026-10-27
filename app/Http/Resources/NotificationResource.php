@@ -4,7 +4,6 @@ namespace App\Http\Resources;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-use Carbon\Carbon;
 
 class NotificationResource extends JsonResource
 {
@@ -16,8 +15,11 @@ class NotificationResource extends JsonResource
             'body' => $this->body,
             'type' => $this->type,
             'reference_id' => $this->reference_id,
-            'is_read' => $this->is_read,
-            'created_at' => Carbon::parse($this->created_at)->setTimezone('Asia/Jakarta')->isoFormat('D MMM YYYY, HH:mm'),
+            'data' => $this->data ?? [],
+            'is_read' => (bool) $this->is_read,
+            'created_at' => $this->created_at?->toIso8601String(),
+            'updated_at' => $this->updated_at?->toIso8601String(),
+            'created_at_label' => $this->created_at?->timezone('Asia/Jakarta')->isoFormat('D MMM YYYY, HH:mm'),
         ];
     }
 }

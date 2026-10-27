@@ -1,5 +1,5 @@
 @extends('admin.layout.app')
-@section('title', 'Stok Barang')
+@section('title', 'Barang')
 
 @section('content')
 @php
@@ -24,18 +24,18 @@
     </div>
     @endif
 
-    {{-- Kartu Ringkasan Stok --}}
+    {{-- Kartu Ringkasan Barang --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
             <h3 class="text-sm font-medium text-muted mb-2">Total Semua Barang</h3>
             <div class="text-3xl font-bold text-ink">{{ number_format($allCount ?? 0, 0, ',', '.') }}</div>
         </div>
         <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-            <h3 class="text-sm font-medium text-muted mb-2">Stok Tersedia</h3>
+            <h3 class="text-sm font-medium text-muted mb-2">Barang Tersedia</h3>
             <div class="text-3xl font-bold text-green-600">{{ number_format($availableCount ?? 0, 0, ',', '.') }}</div>
         </div>
         <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
-            <h3 class="text-sm font-medium text-muted mb-2">Stok Habis</h3>
+            <h3 class="text-sm font-medium text-muted mb-2">Barang Terjual</h3>
             <div class="text-3xl font-bold text-red-600">{{ number_format($outCount ?? 0, 0, ',', '.') }}</div>
         </div>
     </div>
@@ -46,7 +46,8 @@
             <div class="flex flex-wrap gap-2">
                 <a href="?" class="px-4 py-2 rounded-lg text-sm font-medium {{ (!request('status') || request('status') === 'all') ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Semua</a>
                 <a href="?status=available" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'available' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Tersedia</a>
-                <a href="?status=out" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'out' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Habis</a>
+                <a href="?status=reserved" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'reserved' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Dipesan</a>
+                <a href="?status=out" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'out' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Terjual</a>
                 <a href="?status=pending" class="px-4 py-2 rounded-lg text-sm font-medium {{ request('status') === 'pending' ? 'bg-brand text-white' : 'bg-page text-muted hover:bg-gray-100' }}">Pending</a>
             </div>
             <form method="GET" action="" class="w-full sm:w-72">
@@ -63,7 +64,6 @@
                         <th class="px-6 py-4">Penjual</th>
                         <th class="px-6 py-4">Kategori</th>
                         <th class="px-6 py-4">Harga</th>
-                        <th class="px-6 py-4">Stok</th>
                         <th class="px-6 py-4">Status</th>
                         <th class="px-6 py-4">Verifikasi</th>
                         <th class="px-6 py-4">Tanggal Posting</th>
@@ -106,13 +106,11 @@
                         <td class="px-6 py-4 text-ink">{{ $product->seller->name ?? '-' }}</td>
                         <td class="px-6 py-4 text-ink">{{ $product->category->name ?? '-' }}</td>
                         <td class="px-6 py-4 font-semibold text-ink">Rp{{ number_format((float) ($product->price ?? 0), 0, ',', '.') }}</td>
-                        <td class="px-6 py-4 font-bold {{ $product->stock == 0 ? 'text-red-600' : 'text-green-600' }}">
-                            {{ $product->stock }}
-                        </td>
                         <td class="px-6 py-4">
                             @php
                                 $statusCls = match($product->status) {
                                     'available' => 'bg-green-100 text-green-700',
+                                    'reserved' => 'bg-amber-100 text-amber-700',
                                     'sold' => 'bg-blue-100 text-blue-700',
                                     'hidden' => 'bg-gray-100 text-gray-700',
                                     'archived' => 'bg-yellow-100 text-yellow-700',
@@ -264,17 +262,7 @@
                                 @enderror
                             </div>
 
-                            {{-- 5. Stok Barang --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Stok Barang <span class="text-red-500">*</span></label>
-                                <input type="number" min="0" step="1" name="stock" x-model="formData.stock" placeholder="1"
-                                       class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('stock') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                @error('stock')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 6. Kondisi Barang --}}
+                            {{-- 5. Kondisi Barang --}}
                             <div>
                                 <label class="mb-1.5 block text-xs font-semibold text-ink">Kondisi Barang</label>
                                 <select name="condition" x-model="formData.condition"
@@ -506,10 +494,6 @@
                                     <dd class="font-medium text-ink" x-text="detail.category?.name || '-'"></dd>
                                 </div>
                                 <div>
-                                    <dt class="text-[11px] uppercase tracking-wide text-faint">Stok</dt>
-                                    <dd class="font-medium text-ink" x-text="detail.stock ?? '-'"></dd>
-                                </div>
-                                <div>
                                     <dt class="text-[11px] uppercase tracking-wide text-faint">Email Penjual</dt>
                                     <dd class="truncate font-medium text-ink" x-text="detail.seller?.email || '-'"></dd>
                                 </div>
@@ -705,6 +689,7 @@ function stockManager() {
         statusLabel(value) {
             return {
                 available: 'Tersedia',
+                reserved: 'Dipesan',
                 sold: 'Terjual',
                 hidden: 'Disembunyikan',
                 archived: 'Diarsipkan',
@@ -714,6 +699,7 @@ function stockManager() {
         statusClass(value) {
             return {
                 available: 'bg-green-100 text-green-700',
+                reserved: 'bg-amber-100 text-amber-700',
                 sold: 'bg-blue-100 text-blue-700',
                 hidden: 'bg-gray-100 text-gray-700',
                 archived: 'bg-yellow-100 text-yellow-700',

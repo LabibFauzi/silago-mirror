@@ -20,8 +20,10 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Hanya deal yang selesai yang dapat diulas.'], 400);
         }
 
-        if ($deal->buyer_id !== $userId && $deal->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+        if ($deal->buyer_id !== $userId) {
+            return response()->json([
+                'message' => 'Hanya pembeli yang dapat memberikan ulasan.',
+            ], 403);
         }
 
         $exists = $deal->reviews()->where('reviewer_id', $userId)->exists();
@@ -29,7 +31,7 @@ class ReviewController extends Controller
             return response()->json(['message' => 'Anda sudah memberikan ulasan untuk deal ini.'], 409);
         }
 
-        $revieweeId = $deal->buyer_id === $userId ? $deal->seller_id : $deal->buyer_id;
+        $revieweeId = $deal->seller_id;
 
         $review = DB::transaction(function () use ($request, $deal, $userId, $revieweeId) {
             return $deal->reviews()->create([
@@ -40,10 +42,13 @@ class ReviewController extends Controller
             ]);
         });
 
-        $notificationService->send($revieweeId, 'ulasan_baru', [
-            'deal_id' => $deal->id,
-            'review_id' => $review->id,
-        ]);
+        $notificationService->reviewReceived(
+            $revieweeId,
+            $deal,
+            (string) $request->user()->name,
+            (int) $review->rating,
+            $review->id,
+        );
 
         return (new ReviewResource($review))->response()->setStatusCode(201);
     }

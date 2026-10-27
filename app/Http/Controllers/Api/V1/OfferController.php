@@ -8,6 +8,7 @@ use App\Http\Requests\Api\StoreOfferRequest;
 use App\Http\Resources\DealResource;
 use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
+use App\Models\MarketplaceDeal;
 use App\Models\Message;
 use App\Services\OfferService;
 use App\Services\NotificationService;
@@ -20,7 +21,7 @@ class OfferController extends Controller
         $userId = $request->user()->id;
 
         if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke percakapan ini.'], 403);
         }
 
         // Validasi harga > 0 dan <= product.price (N3)
@@ -29,16 +30,31 @@ class OfferController extends Controller
             return response()->json(['message' => 'Harga penawaran tidak valid.'], 400);
         }
 
+        if ($product->verification_status !== 'verified' || $product->status !== 'available') {
+            return response()->json(['message' => 'Produk sudah tidak tersedia untuk ditawar.'], 409);
+        }
+
+        $hasActiveDeal = MarketplaceDeal::where('conversation_id', $conversation->id)
+            ->whereIn('status', ['agreed', 'completed'])
+            ->exists();
+
+        if ($hasActiveDeal) {
+            return response()->json([
+                'message' => 'Percakapan ini sudah memiliki kesepakatan. Gunakan Nego Ulang dari kartu deal.',
+            ], 409);
+        }
+
         try {
             $offer = $offerService->createOffer($conversation, $userId, $request->price, $request->note, $request->parent_offer_id);
             
             $recipientId = $conversation->buyer_id === $userId ? $conversation->seller_id : $conversation->buyer_id;
-            $type = $request->parent_offer_id ? 'offerDibalas' : 'offerBaru';
-            
-            $notificationService->send($recipientId, $type, [
-                'conversation_id' => $conversation->id,
-                'offer_id' => $offer->id,
-            ]);
+
+            $notificationService->newOffer(
+                $recipientId,
+                $conversation,
+                $offer,
+                (string) $request->user()->name,
+            );
 
             return (new MessageResource($offer))->response()->setStatusCode(201);
         } catch (\Exception $e) {
@@ -52,8 +68,12 @@ class OfferController extends Controller
         $conversation = $offer->conversation;
         $userId = $request->user()->id;
 
+        if (! $conversation) {
+            return response()->json(['message' => 'Penawaran tidak ditemukan.'], 404);
+        }
+
         if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke percakapan ini.'], 403);
         }
 
         if ($offer->sender_id === $userId) {
@@ -62,10 +82,10 @@ class OfferController extends Controller
 
         try {
             $deal = $offerService->acceptOffer($offer, $userId, $request->quantity ?? 1);
-            
-            $notificationService->send($offer->sender_id, 'offerDisetujui', [
-                'deal_id' => $deal->id,
-            ]);
+
+            // Kedua pihak menerima notifikasi kesepakatan.
+            $notificationService->dealAgreed($deal->buyer_id, $deal);
+            $notificationService->dealAgreed($deal->seller_id, $deal);
 
             return (new DealResource($deal))->response()->setStatusCode(201);
         } catch (\Exception $e) {
@@ -79,8 +99,12 @@ class OfferController extends Controller
         $conversation = $offer->conversation;
         $userId = $request->user()->id;
 
+        if (! $conversation) {
+            return response()->json(['message' => 'Penawaran tidak ditemukan.'], 404);
+        }
+
         if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke percakapan ini.'], 403);
         }
 
         if ($offer->sender_id === $userId) {
@@ -89,12 +113,10 @@ class OfferController extends Controller
 
         try {
             $offerService->rejectOffer($offer, $userId);
-            
-            $notificationService->send($offer->sender_id, 'offerDitolak', [
-                'offer_id' => $offer->id,
-            ]);
 
-            return response()->json(['message' => 'Offer rejected'], 200);
+            $notificationService->offerRejected($offer->sender_id, $conversation, $offer);
+
+            return response()->json(['message' => 'Penawaran ditolak.'], 200);
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
             return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);

@@ -121,7 +121,7 @@
                     <input type="checkbox" name="maintenance_mode" value="1" id="maintenance_mode" {{ ($settings['maintenance_mode'] ?? '0') === '1' ? 'checked' : '' }} class="mt-1 h-4 w-4 text-brand border-line rounded focus:ring-brand">
                     <div class="ml-3">
                         <label for="maintenance_mode" class="text-sm font-medium text-ink">Aktifkan Mode Maintenance</label>
-                        <p class="text-xs text-muted">Ketika aktif, semua request publik/API akan dikunci (503 Service Unavailable). Admin dapat melakukan operasi penuh (Tambah, Ubah, Hapus) langsung pada masing-masing halaman tabel (Stok Barang, Pengguna, Transaksi, dll.).</p>
+                        <p class="text-xs text-muted">Ketika aktif, semua request publik/API akan dikunci (503 Service Unavailable). Admin dapat melakukan operasi penuh (Tambah, Ubah, Hapus) langsung pada masing-masing halaman tabel (Barang, Pengguna, Transaksi, dll.).</p>
                     </div>
                 </div>
 
@@ -136,7 +136,7 @@
                         </div>
                         <div class="flex items-center gap-2">
                             <a href="{{ route('admin.stock.index') }}" class="inline-flex items-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition-colors">
-                                Kelola Stok &rarr;
+                                Kelola Barang &rarr;
                             </a>
                             <a href="{{ route('admin.users.index') }}" class="inline-flex items-center gap-1.5 bg-gray-800 hover:bg-gray-900 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-sm transition-colors">
                                 Kelola Pengguna &rarr;

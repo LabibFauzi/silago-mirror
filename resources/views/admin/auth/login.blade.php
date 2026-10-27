@@ -87,8 +87,8 @@
                                 <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 21.73a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73z"/><path d="M12 22V12"/><polyline points="3.29 7 12 12 20.71 7"/></svg>
                             </div>
                             <div>
-                                <div class="text-xs font-semibold leading-4 text-white">Katalog &amp; Stok Barang</div>
-                                <div class="text-[11px] leading-4 text-emerald-200/70">Monitor inventaris dan kategori aktif</div>
+                                <div class="text-xs font-semibold leading-4 text-white">Katalog Barang</div>
+                                <div class="text-[11px] leading-4 text-emerald-200/70">Monitor barang dan kategori aktif</div>
                             </div>
                         </div>
 

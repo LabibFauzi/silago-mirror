@@ -30,7 +30,6 @@ class UpdateProductRequest extends FormRequest
             'completeness' => ['sometimes', 'nullable', 'string', 'max:255'],
             'sell_reason' => ['sometimes', 'nullable', 'string'],
             'price' => ['sometimes', 'required', 'numeric', 'min:1'],
-            'stock' => ['sometimes', 'required', 'integer', 'min:1'],
             'category_id' => ['sometimes', 'required', 'exists:categories,id'],
             'photos' => ['sometimes', 'array', 'min:1', 'max:' . $maxPhotos],
             // Maksimal 1 MB per foto.

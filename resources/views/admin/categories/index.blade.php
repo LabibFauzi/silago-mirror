@@ -79,7 +79,6 @@
                             <tr>
                                 <th class="px-4 py-3">Nama Barang</th>
                                 <th class="px-4 py-3">Harga</th>
-                                <th class="px-4 py-3">Stok</th>
                                 <th class="px-4 py-3">Status</th>
                             </tr>
                         </thead>
@@ -88,9 +87,6 @@
                                 <tr class="border-b border-line hover:bg-page">
                                     <td class="px-4 py-3 font-medium text-ink" x-text="product.name"></td>
                                     <td class="px-4 py-3 text-muted" x-text="formatPrice(product.price)"></td>
-                                    <td class="px-4 py-3">
-                                        <span class="bg-soft text-brand py-1 px-2 rounded-md text-xs font-medium" x-text="product.stock"></span>
-                                    </td>
                                     <td class="px-4 py-3">
                                         <span class="py-1 px-2 rounded-md text-xs"
                                               :class="product.verification_status === 'approved' ? 'bg-green-100 text-green-700' : (product.verification_status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700')"

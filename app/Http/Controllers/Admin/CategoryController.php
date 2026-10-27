@@ -71,7 +71,7 @@ class CategoryController extends Controller
     public function products(Category $category): JsonResponse
     {
         $products = $category->products()
-            ->select(['id', 'name', 'price', 'stock', 'verification_status', 'status'])
+            ->select(['id', 'name', 'price', 'verification_status', 'status'])
             ->latest('created_at')
             ->get();
 

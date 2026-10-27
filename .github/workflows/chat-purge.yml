@@ -1,0 +1,20 @@
+name: Purge inactive chats
+
+on:
+  schedule:
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+jobs:
+  purge:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger chat:purge
+        env:
+          API_URL: ${{ secrets.SILAGO_API_URL }}
+          PURGE_SECRET: ${{ secrets.CHAT_PURGE_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "X-Internal-Token: ${PURGE_SECRET}" \
+            "${API_URL%/}/api/v1/internal/chat/purge"

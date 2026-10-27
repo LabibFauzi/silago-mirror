@@ -23,6 +23,9 @@ class MessageResource extends JsonResource
             'location_name' => $this->location_name,
             'location_address' => $this->location_address,
             'location_accuracy' => $this->location_accuracy,
+            'image_path' => $this->image_url,
+            'image_thumbnail' => $this->image_thumbnail,
+            'image_caption' => $this->image_caption,
             'read_at' => $this->read_at,
             'created_at' => $this->created_at,
         ];

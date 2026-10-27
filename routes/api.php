@@ -17,6 +17,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->middleware('maintenance')->group(function () {
     Route::get('/app-config', [\App\Http\Controllers\Api\V1\ConfigController::class, 'index']);
 
+    // Endpoint internal untuk cron pembersihan chat (secret token).
+    Route::post('/internal/chat/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeChats'])
+        ->withoutMiddleware('maintenance');
+
     // Autentikasi
     Route::prefix('auth')->group(function () {
         Route::post('/register',             [\App\Http\Controllers\Api\V1\AuthController::class, 'register']);
@@ -43,6 +47,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::post('/me/fcm-token',  [\App\Http\Controllers\Api\V1\ProfileController::class, 'updateFcmToken']);
         // Route::post('/me/2fa/toggle', [\App\Http\Controllers\Api\V1\AuthController::class, 'toggleTwoFactor']); // 2FA disabled
         Route::get('/me/summary',     [\App\Http\Controllers\Api\V1\ProfileController::class, 'summary']);
+        Route::get('/me/reviews',     [\App\Http\Controllers\Api\V1\ProfileController::class, 'reviews']);
         Route::get('/me/products',    [\App\Http\Controllers\Api\V1\ProductController::class, 'myProducts']);
         Route::get('/me/favorites',   [\App\Http\Controllers\Api\V1\FavoriteController::class, 'index']);
 
@@ -62,6 +67,9 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         // Chat dan negosiasi
         Route::get('/conversations',                              [\App\Http\Controllers\Api\V1\ConversationController::class, 'index']);
         Route::post('/products/{product}/conversations',          [\App\Http\Controllers\Api\V1\ConversationController::class, 'store']);
+        Route::get('/conversations/unread-count',                 [\App\Http\Controllers\Api\V1\ConversationController::class, 'unreadCount']);
+        Route::post('/conversations/read-all',                    [\App\Http\Controllers\Api\V1\ConversationController::class, 'markAllRead']);
+        Route::post('/conversations/{conversation}/presence',     [\App\Http\Controllers\Api\V1\ConversationController::class, 'presence']);
         Route::get('/conversations/{conversation}',              [\App\Http\Controllers\Api\V1\ConversationController::class, 'show']);
         Route::get('/conversations/{conversation}/messages',     [\App\Http\Controllers\Api\V1\MessageController::class, 'index']);
         Route::post('/conversations/{conversation}/messages',    [\App\Http\Controllers\Api\V1\MessageController::class, 'store']);
@@ -69,8 +77,8 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::post('/conversations/{conversation}/offers',      [\App\Http\Controllers\Api\V1\OfferController::class, 'store']);
 
         // Penawaran
-        Route::post('/offers/{message}/accept', [\App\Http\Controllers\Api\V1\OfferController::class, 'accept']);
-        Route::post('/offers/{message}/reject', [\App\Http\Controllers\Api\V1\OfferController::class, 'reject']);
+        Route::post('/offers/{offer}/accept', [\App\Http\Controllers\Api\V1\OfferController::class, 'accept']);
+        Route::post('/offers/{offer}/reject', [\App\Http\Controllers\Api\V1\OfferController::class, 'reject']);
 
         // Transaksi
         Route::get('/deals',                      [\App\Http\Controllers\Api\V1\DealController::class, 'index']);
@@ -78,6 +86,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::post('/deals/{deal}/qr',           [\App\Http\Controllers\Api\V1\DealController::class, 'generateQr']);
         Route::post('/deals/{deal}/complete',     [\App\Http\Controllers\Api\V1\DealController::class, 'complete']);
         Route::post('/deals/{deal}/cancel',       [\App\Http\Controllers\Api\V1\DealController::class, 'cancel']);
+        Route::post('/deals/{deal}/renegotiate',  [\App\Http\Controllers\Api\V1\DealController::class, 'renegotiate']);
         Route::post('/deals/{deal}/review',       [\App\Http\Controllers\Api\V1\ReviewController::class, 'store']);
         Route::post('/deals/{deal}/report',       [\App\Http\Controllers\Api\V1\ReportController::class, 'reportDeal']);
 

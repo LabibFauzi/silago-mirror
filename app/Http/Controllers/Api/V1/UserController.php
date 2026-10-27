@@ -3,10 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
-use App\Models\User;
-use App\Models\Review;
-use App\Models\Deal;
+use App\Models\MarketplaceDeal;
 use App\Models\Product;
+use App\Models\Review;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class UserController extends Controller
@@ -16,11 +16,17 @@ class UserController extends Controller
         $avg_rating = Review::where('reviewee_id', $user->id)->avg('rating') ?? 0.0;
         $total_reviews = Review::where('reviewee_id', $user->id)->count();
         
-        $total_sold = Deal::whereHas('product', function($q) use ($user) {
-            $q->where('user_id', $user->id);
+        $total_sold = MarketplaceDeal::whereHas('product', function ($q) use ($user) {
+            $q->where('seller_id', $user->id);
         })->where('status', 'completed')->count();
 
-        $total_bought = Deal::where('buyer_id', $user->id)->where('status', 'completed')->count();
+        $total_bought = MarketplaceDeal::where('buyer_id', $user->id)
+            ->where('status', 'completed')
+            ->count();
+
+        $cancelled_deals = MarketplaceDeal::where('cancelled_by', $user->id)
+            ->where('status', 'cancelled')
+            ->count();
 
         return response()->json([
             'id' => $user->id,
@@ -30,6 +36,7 @@ class UserController extends Controller
             'total_reviews' => $total_reviews,
             'total_sold' => $total_sold,
             'total_bought' => $total_bought,
+            'cancelled_deals' => $cancelled_deals,
         ]);
     }
 
@@ -45,9 +52,9 @@ class UserController extends Controller
 
     public function products(Request $request, User $user)
     {
-        $products = Product::where('user_id', $user->id)
+        $products = Product::where('seller_id', $user->id)
             ->where('status', 'available')
-            ->where('is_verified', true)
+            ->where('verification_status', 'verified')
             ->orderBy('created_at', 'desc')
             ->paginate(15);
             

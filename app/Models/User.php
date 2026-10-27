@@ -71,6 +71,11 @@ class User extends Authenticatable
         return $this->hasMany(Favorite::class);
     }
 
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reported_user_id');
+    }
+
     public function marketplaceDeals(): HasMany
     {
         return $this->hasMany(MarketplaceDeal::class, 'seller_id');

@@ -142,12 +142,10 @@ class ProductController extends Controller
             abort(403, 'Anda tidak berhak mengubah produk ini.');
         }
 
-        // Cek deal (asumsi ada model Deal atau join ke DB)
-        $hasAgreedDeal = DB::table('deals')
-            ->where('product_id', $product->id)
-            ->where('status', 'agreed')
+        $hasAgreedDeal = \App\Models\MarketplaceDeal::where('product_id', $product->id)
+            ->whereIn('status', ['agreed', 'completed'])
             ->exists();
-            
+
         if ($hasAgreedDeal) {
             abort(409, 'Tidak dapat mengubah produk karena sudah ada kesepakatan.');
         }
@@ -216,11 +214,10 @@ class ProductController extends Controller
             abort(403, 'Anda tidak berhak menghapus produk ini.');
         }
 
-        $hasAgreedDeal = DB::table('deals')
-            ->where('product_id', $product->id)
-            ->where('status', 'agreed')
+        $hasAgreedDeal = \App\Models\MarketplaceDeal::where('product_id', $product->id)
+            ->whereIn('status', ['agreed', 'completed'])
             ->exists();
-            
+
         if ($hasAgreedDeal) {
             abort(409, 'Tidak dapat menghapus produk karena sudah ada kesepakatan.');
         }

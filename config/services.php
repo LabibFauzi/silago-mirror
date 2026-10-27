@@ -49,6 +49,17 @@ return [
         'expiry_minutes' => env('OTP_EXPIRY_MINUTES', 15),
     ],
 
+    'chat_purge' => [
+        'secret' => env('CHAT_PURGE_SECRET'),
+    ],
+
+    'fcm' => [
+        // Aktifkan setelah service account Firebase dan package FCM tersedia.
+        'enabled' => env('FCM_ENABLED', false),
+        'project_id' => env('FIREBASE_PROJECT_ID'),
+        'credentials' => env('FIREBASE_CREDENTIALS'),
+    ],
+
     'polines_email_domain' => env('POLINES_EMAIL_DOMAIN', 'polines.ac.id'),
 
 ];

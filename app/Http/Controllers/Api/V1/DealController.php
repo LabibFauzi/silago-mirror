@@ -8,6 +8,8 @@ use App\Http\Requests\Api\CompleteRequest;
 use App\Http\Resources\DealResource;
 use App\Models\MarketplaceDeal;
 use App\Services\DealService;
+use App\Services\NotificationService;
+use App\Services\OfferService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 
@@ -16,17 +18,26 @@ class DealController extends Controller
     public function index(Request $request): AnonymousResourceCollection
     {
         $userId = $request->user()->id;
+        $role = $request->query('role');
 
-        $query = MarketplaceDeal::where(function ($q) use ($userId) {
-            $q->where('buyer_id', $userId)
-              ->orWhere('seller_id', $userId);
-        })->with(['product', 'buyer', 'seller']);
+        $query = MarketplaceDeal::query()->with(['product', 'buyer', 'seller']);
+
+        if ($role === 'buyer') {
+            $query->where('buyer_id', $userId);
+        } elseif ($role === 'seller') {
+            $query->where('seller_id', $userId);
+        } else {
+            $query->where(function ($q) use ($userId) {
+                $q->where('buyer_id', $userId)
+                  ->orWhere('seller_id', $userId);
+            });
+        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
-        return DealResource::collection($query->paginate(15));
+        return DealResource::collection($query->latest('id')->paginate(15));
     }
 
     public function show(Request $request, MarketplaceDeal $deal)
@@ -34,25 +45,15 @@ class DealController extends Controller
         $userId = $request->user()->id;
 
         if ($deal->buyer_id !== $userId && $deal->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke transaksi ini.'], 403);
         }
 
-        $canGenerateQr = $deal->seller_id === $userId && $deal->status === 'agreed';
-        $canComplete = $deal->buyer_id === $userId && $deal->status === 'agreed';
-        $canCancel = $deal->status === 'agreed';
-        
-        // Cek apakah user belum mereview
-        $hasReviewed = $deal->reviews()->where('reviewer_id', $userId)->exists();
-        $canReview = $deal->status === 'completed' && !$hasReviewed;
+        $deal->load(['product', 'buyer', 'seller']);
+        $resource = (new DealResource($deal))->resolve($request);
 
         return response()->json([
-            'data' => new DealResource($deal),
-            'actions' => [
-                'can_generate_qr' => $canGenerateQr,
-                'can_complete' => $canComplete,
-                'can_cancel' => $canCancel,
-                'can_review' => $canReview,
-            ],
+            'data' => $resource,
+            'actions' => $resource['actions'],
         ]);
     }
 
@@ -92,15 +93,19 @@ class DealController extends Controller
         }
 
         try {
-            // Kita pass token atau code
-            $payload = $request->filled('token') ? ['token' => $request->token] : ['code' => $request->code];
-            if ($request->filled('lat')) {
-                $payload['lat'] = $request->lat;
-                $payload['lng'] = $request->lng;
-            }
+            $isCode = $request->filled('code');
+            $input = $isCode ? (string) $request->code : (string) $request->token;
 
-            $deal = $dealService->complete($deal, $payload);
-            return new DealResource($deal);
+            $deal = $dealService->complete(
+                $deal,
+                $input,
+                $isCode,
+                $request->filled('lat') ? (float) $request->lat : null,
+                $request->filled('lng') ? (float) $request->lng : null,
+                $userId,
+            );
+
+            return new DealResource($deal->load(['product', 'buyer', 'seller']));
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
             return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
@@ -112,12 +117,40 @@ class DealController extends Controller
         $userId = $request->user()->id;
 
         if ($deal->buyer_id !== $userId && $deal->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke transaksi ini.'], 403);
         }
 
         try {
-            $dealService->cancel($deal, $userId, $request->note);
-            return response()->json(['message' => 'Deal cancelled'], 200);
+            $cancelled = $dealService->cancel($deal, $userId, $request->note);
+
+            return response()->json([
+                'message' => 'Deal dibatalkan.',
+                'data' => new DealResource($cancelled->load(['product', 'buyer', 'seller'])),
+            ], 200);
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 400;
+            return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
+        }
+    }
+
+    public function renegotiate(
+        Request $request,
+        MarketplaceDeal $deal,
+        OfferService $offerService,
+        NotificationService $notificationService,
+    ) {
+        $userId = $request->user()->id;
+
+        try {
+            $updated = $offerService->renegotiateDeal($deal, $userId);
+
+            $otherId = $updated->buyer_id === $userId
+                ? $updated->seller_id
+                : $updated->buyer_id;
+
+            $notificationService->dealRenegotiated($otherId, $updated);
+
+            return new DealResource($updated->load(['product', 'buyer', 'seller']));
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
             return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);

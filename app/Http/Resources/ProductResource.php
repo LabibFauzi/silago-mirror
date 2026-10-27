@@ -28,7 +28,6 @@ class ProductResource extends JsonResource
             'completeness' => $this->completeness,
             'sell_reason' => $this->sell_reason,
             'price' => (float) $this->price,
-            'stock' => $this->stock,
             'status' => $this->status,
             'verification_status' => $this->verification_status,
             

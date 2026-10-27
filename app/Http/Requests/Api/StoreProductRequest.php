@@ -30,7 +30,6 @@ class StoreProductRequest extends FormRequest
             'completeness' => ['nullable', 'string', 'max:255'],
             'sell_reason' => ['nullable', 'string'],
             'price' => ['required', 'numeric', 'min:1'],
-            'stock' => ['required', 'integer', 'min:1'],
             'category_id' => ['required', 'exists:categories,id'],
             'photos' => ['required', 'array', 'min:1', 'max:' . $maxPhotos],
             // Maksimal 1 MB per foto.

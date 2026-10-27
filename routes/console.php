@@ -21,3 +21,25 @@ Schedule::command('deals:remind-pending')
     ->timezone('Asia/Jakarta')
     ->withoutOverlapping()
     ->runInBackground();
+
+// Ingatkan pembeli yang belum mengulas transaksi selesai setiap hari jam 10:00 WIB
+Schedule::command('deals:remind-reviews')
+    ->dailyAt('10:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Bersihkan notifikasi lama (default 30 hari).
+Schedule::command('notifications:purge')
+    ->dailyAt('02:00')
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Hapus chat biasa tanpa offer/deal yang tidak aktif lebih dari 24 jam.
+// Dijalankan tiap jam agar chat sementara cepat dibersihkan.
+Schedule::command('chat:purge')
+    ->hourly()
+    ->timezone('Asia/Jakarta')
+    ->withoutOverlapping()
+    ->runInBackground();

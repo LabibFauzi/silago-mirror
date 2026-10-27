@@ -146,7 +146,7 @@ class DummyDataSeeder extends Seeder
             }
 
             $lastMessage = $conv->messages()->latest()->first();
-            $status = ['active', 'completed', 'cancelled'][rand(0, 2)];
+            $status = ['negotiating', 'agreed', 'completed', 'cancelled'][rand(0, 3)];
             
             // Distribute deals over last 7 days
             $daysAgo = rand(0, 6);
