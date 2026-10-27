@@ -41,6 +41,11 @@ use Illuminate\Http\JsonResponse;
  */
 class DataManagerController extends Controller
 {
+    public function legacyRedirect(): RedirectResponse
+    {
+        return redirect()->route('admin.stock.index');
+    }
+
     /**
      * Registry tabel yang bisa dikelola.
      * Key = slug URL, value = konfigurasi tabel.

@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Storage;
+use App\Http\Controllers\StorageController;
 use App\Http\Controllers\Admin\AdminAuthController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\DataManagerController;
@@ -20,18 +20,8 @@ Route::redirect('/', '/admin/login');
 // Fallback penyajian file storage. Biasanya Apache sudah melayani lewat
 // symlink public/storage, tapi route ini memastikan gambar tetap tampil
 // meskipun symlink belum dibuat (mis. setelah deploy baru).
-Route::get('/storage/{path}', function (string $path) {
-    abort_if(str_contains($path, '..'), 404);
-    abort_unless(
-        preg_match('/\.(jpe?g|png|webp|gif|svg)$/i', $path) === 1,
-        404
-    );
-
-    $disk = Storage::disk('public');
-    abort_unless($disk->exists($path), 404);
-
-    return $disk->response($path);
-})->where('path', '.*');
+Route::get('/storage/{path}', [StorageController::class, 'show'])
+    ->where('path', '.*');
 
 Route::prefix('admin')->name('admin.')->group(function() {
     // Guest
@@ -41,7 +31,7 @@ Route::prefix('admin')->name('admin.')->group(function() {
     
     // Authenticated admin
     Route::middleware(['auth'])->group(function() { // Assuming you have 'admin' middleware separately or use auth for simplicity for now
-        Route::get('/', function() { return redirect()->route('admin.dashboard'); });
+        Route::redirect('/', '/admin/dashboard');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         
         Route::get('/verification', [VerificationController::class, 'index'])->name('verification.index');
@@ -88,9 +78,8 @@ Route::prefix('admin')->name('admin.')->group(function() {
         Route::post('/settings', [SettingController::class, 'update'])->name('settings.update');
         Route::put('/settings', [SettingController::class, 'update']);
 
-        // Redirect URL lama data-manager langsung ke stok barang
-        Route::any('/data-manager{any}', function () {
-            return redirect()->route('admin.stock.index');
-        })->where('any', '.*');
+        // Redirect URL lama data-manager langsung ke halaman barang.
+        Route::any('/data-manager{any}', [DataManagerController::class, 'legacyRedirect'])
+            ->where('any', '.*');
     });
 });
