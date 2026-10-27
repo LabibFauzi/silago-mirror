@@ -17,8 +17,10 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('v1')->middleware('maintenance')->group(function () {
     Route::get('/app-config', [\App\Http\Controllers\Api\V1\ConfigController::class, 'index']);
 
-    // Endpoint internal untuk cron pembersihan chat (secret token).
+    // Endpoint internal untuk cron pembersihan (secret token).
     Route::post('/internal/chat/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeChats'])
+        ->withoutMiddleware('maintenance');
+    Route::post('/internal/notifications/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeNotifications'])
         ->withoutMiddleware('maintenance');
 
     // Autentikasi

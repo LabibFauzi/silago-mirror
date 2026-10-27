@@ -10,7 +10,6 @@ use App\Models\Message;
 use App\Models\Notification;
 use App\Models\Product;
 use App\Models\Report;
-use App\Models\User;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
@@ -427,11 +426,22 @@ class NotificationService
 
     private function isViewingConversation(int $userId, int $conversationId): bool
     {
-        return ConversationPresence::query()
-            ->where('conversation_id', $conversationId)
-            ->where('user_id', $userId)
-            ->where('last_seen_at', '>=', now()->subSeconds(20))
-            ->exists();
+        try {
+            return ConversationPresence::query()
+                ->where('conversation_id', $conversationId)
+                ->where('user_id', $userId)
+                ->where('last_seen_at', '>=', now()->subSeconds(20))
+                ->exists();
+        } catch (\Throwable $e) {
+            // Presence opsional; jangan sampai mengganggu pengiriman pesan.
+            Log::warning('Gagal memeriksa presence percakapan', [
+                'conversation_id' => $conversationId,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
     }
 
     private function rupiah(float $value): string

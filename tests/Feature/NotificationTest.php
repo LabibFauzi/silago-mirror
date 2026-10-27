@@ -145,6 +145,43 @@ class NotificationTest extends TestCase
         ]);
     }
 
+    public function test_old_notifications_and_notifications_of_deleted_chats_are_cleaned(): void
+    {
+        [$seller, $buyer, $product, $conversation] = $this->makeConversation();
+
+        $old = Notification::create([
+            'user_id' => $seller->id,
+            'title' => 'Notifikasi lama',
+            'body' => 'Harus dibersihkan.',
+            'type' => 'info',
+        ]);
+        \DB::table('notifications')->where('id', $old->id)->update([
+            'created_at' => now()->subDays(31),
+            'updated_at' => now()->subDays(31),
+        ]);
+
+        $chatNotification = Notification::create([
+            'user_id' => $seller->id,
+            'title' => 'Pesan baru',
+            'body' => 'Percakapan akan dihapus.',
+            'type' => 'new_message',
+            'reference_id' => $conversation->id,
+            'data' => ['conversation_id' => $conversation->id],
+        ]);
+
+        \DB::table('conversations')->where('id', $conversation->id)->update([
+            'updated_at' => now()->subDays(2),
+        ]);
+
+        $this->artisan('notifications:purge')->assertSuccessful();
+        $this->assertDatabaseMissing('notifications', ['id' => $old->id]);
+
+        $this->artisan('chat:purge')->assertSuccessful();
+
+        $this->assertDatabaseMissing('conversations', ['id' => $conversation->id]);
+        $this->assertDatabaseMissing('notifications', ['id' => $chatNotification->id]);
+    }
+
     public function test_review_reminder_is_sent_once_after_one_day(): void
     {
         [$seller, $buyer, $product, $conversation] = $this->makeConversation();

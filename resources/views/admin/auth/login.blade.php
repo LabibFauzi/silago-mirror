@@ -68,7 +68,7 @@
                     </h2>
 
                     <p class="text-sm leading-[22.75px] text-emerald-100/80">
-                        Pusat kendali dan tindak lanjut laporan pengguna, manajemen stok barang, serta pengawasan transaksi realtime.
+                        Pusat kendali dan tindak lanjut laporan pengguna, manajemen barang, serta pengawasan transaksi realtime.
                     </p>
 
                     <div class="flex flex-col gap-3.5 pt-5">

@@ -183,7 +183,7 @@
                     <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-white shrink-0">
                         <div>
                             <h3 class="text-lg font-bold text-ink" x-text="isEdit ? 'Ubah Data Barang' : 'Tambah Barang Baru'"></h3>
-                            <p class="text-xs text-muted">Kelola data stok barang langsung saat Mode Maintenance aktif.</p>
+                            <p class="text-xs text-muted">Kelola data barang langsung saat Mode Maintenance aktif.</p>
                         </div>
                         <button type="button" @click="closeModal()" class="rounded-lg p-1.5 text-faint hover:bg-gray-100 hover:text-ink transition-colors">
                             <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>

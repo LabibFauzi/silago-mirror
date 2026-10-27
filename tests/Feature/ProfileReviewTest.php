@@ -200,7 +200,6 @@ class ProfileReviewTest extends TestCase
             'category_id' => $category->id,
             'name' => 'Produk Profile '.$suffix,
             'price' => 100000,
-            'stock' => 0,
             'condition' => 'Bekas',
             'status' => 'sold',
             'verification_status' => 'verified',

@@ -51,7 +51,6 @@ class OfferAcceptTest extends TestCase
             'category_id' => $category->id,
             'name' => 'Produk Test '.$suffix,
             'price' => 100000,
-            'stock' => 1,
             'status' => 'available',
             'verification_status' => 'verified',
         ]);

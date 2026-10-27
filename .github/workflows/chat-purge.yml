@@ -18,3 +18,13 @@ jobs:
             --request POST \
             --header "X-Internal-Token: ${PURGE_SECRET}" \
             "${API_URL%/}/api/v1/internal/chat/purge"
+
+      - name: Trigger notifications:purge
+        env:
+          API_URL: ${{ secrets.SILAGO_API_URL }}
+          PURGE_SECRET: ${{ secrets.CHAT_PURGE_SECRET }}
+        run: |
+          curl --fail-with-body --silent --show-error \
+            --request POST \
+            --header "X-Internal-Token: ${PURGE_SECRET}" \
+            "${API_URL%/}/api/v1/internal/notifications/purge"

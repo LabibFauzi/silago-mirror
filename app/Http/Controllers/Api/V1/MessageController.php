@@ -8,6 +8,7 @@ use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
 use App\Models\ConversationPresence;
 use App\Models\Message;
+use App\Models\Notification;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -140,6 +141,14 @@ class MessageController extends Controller
             ],
             ['last_seen_at' => now()],
         );
+
+        // Membuka chat juga menuntaskan badge notifikasi pesan untuk chat ini.
+        Notification::query()
+            ->where('user_id', $userId)
+            ->where('type', 'new_message')
+            ->where('reference_id', $conversation->id)
+            ->where('is_read', false)
+            ->update(['is_read' => true]);
 
         return response()->json(['message' => 'Pesan ditandai sudah dibaca.']);
     }

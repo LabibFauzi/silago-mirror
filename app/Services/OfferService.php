@@ -120,7 +120,7 @@ class OfferService
 
     /**
      * Menerima penawaran. Deal negotiating berubah menjadi agreed dan produk
-     * di-reserve tanpa mengurangi stok (stok baru berkurang saat QR selesai).
+     * dikunci sementara sampai transaksi selesai.
      */
     public function acceptOffer(Message $offer, int $acceptorId, int $quantity = 1): MarketplaceDeal
     {
@@ -202,7 +202,7 @@ class OfferService
                 'agreed_at' => $now,
             ]);
 
-            // Produk dikunci di etalase, tetapi stok belum dikurangi.
+            // Produk dikunci di etalase sampai transaksi selesai.
             $product->update(['status' => 'reserved']);
 
             $this->createSystemMessage(

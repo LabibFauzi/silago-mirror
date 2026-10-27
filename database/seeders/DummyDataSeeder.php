@@ -87,7 +87,6 @@ class DummyDataSeeder extends Seeder
                 'completeness' => $i % 2 === 0 ? 'lengkap' : 'tidak lengkap',
                 'sell_reason' => 'Tidak dipakai lagi',
                 'price' => 50000 + ($i * 10000),
-                'stock' => rand(0, 5),
                 'status' => $status,
                 'verification_status' => $verification,
                 'verified_by' => $verification === 'verified' ? 1 : null,

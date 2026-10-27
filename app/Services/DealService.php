@@ -147,8 +147,7 @@ class DealService
     }
 
     /**
-     * Membatalkan deal agreed. Produk kembali tersedia tanpa mengubah stok,
-     * karena stok baru dikurangi saat transaksi selesai.
+     * Membatalkan deal agreed dan mengembalikan produk ke etalase.
      */
     public function cancel(MarketplaceDeal $deal, int $cancelledBy, ?string $note = null): MarketplaceDeal
     {
