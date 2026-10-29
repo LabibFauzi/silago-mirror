@@ -111,12 +111,33 @@ class OfferController extends Controller
             return response()->json(['message' => 'Tidak dapat menolak penawaran sendiri.'], 403);
         }
 
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
+
         try {
-            $offerService->rejectOffer($offer, $userId);
+            $offerService->rejectOffer($offer, $userId, $validated['reason'] ?? null);
 
             $notificationService->offerRejected($offer->sender_id, $conversation, $offer);
 
             return response()->json(['message' => 'Penawaran ditolak.'], 200);
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 400;
+            return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
+        }
+    }
+
+    /**
+     * Tarik (batalkan) penawaran sendiri yang masih pending.
+     */
+    public function cancel(Request $request, Message $offer, OfferService $offerService)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $offerService->cancelOffer($offer, $userId);
+
+            return response()->json(['message' => 'Penawaran ditarik.'], 200);
         } catch (\Exception $e) {
             $code = $e->getCode() ?: 400;
             return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);

@@ -116,8 +116,9 @@ class DealController extends Controller
     {
         $userId = $request->user()->id;
 
-        if ($deal->buyer_id !== $userId && $deal->seller_id !== $userId) {
-            return response()->json(['message' => 'Kamu tidak memiliki akses ke transaksi ini.'], 403);
+        // Pembatalan dengan alasan hanya untuk pembeli.
+        if ($deal->buyer_id !== $userId) {
+            return response()->json(['message' => 'Hanya pembeli yang dapat membatalkan transaksi.'], 403);
         }
 
         try {
@@ -140,6 +141,11 @@ class DealController extends Controller
         NotificationService $notificationService,
     ) {
         $userId = $request->user()->id;
+
+        // Nego ulang hanya untuk pembeli.
+        if ($deal->buyer_id !== $userId) {
+            return response()->json(['message' => 'Hanya pembeli yang dapat melakukan nego ulang.'], 403);
+        }
 
         try {
             $updated = $offerService->renegotiateDeal($deal, $userId);

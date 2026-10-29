@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Review;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class UserController extends Controller
 {
@@ -32,6 +33,12 @@ class UserController extends Controller
             'id' => $user->id,
             'name' => $user->name,
             'email_verified_at' => $user->email_verified_at,
+            // Nomor tampil di profil publik hanya bila diaktifkan pengguna.
+            'phone' => ($user->show_phone && $user->phone) ? $user->phone : null,
+            'has_phone' => ! empty($user->phone),
+            'show_phone' => (bool) $user->show_phone,
+            'profile_photo_url' => $user->profile_photo ? Storage::url($user->profile_photo) : null,
+            'avatar_url' => $user->profile_photo ? Storage::url($user->profile_photo) : $user->avatar,
             'avg_rating' => round($avg_rating, 1),
             'total_reviews' => $total_reviews,
             'total_sold' => $total_sold,

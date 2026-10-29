@@ -42,12 +42,21 @@ class ProductResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
             
-            'seller' => $this->whenLoaded('seller', function () {
+            'seller' => $this->whenLoaded('seller', function () use ($user) {
+                $seller = $this->seller;
+                // Pemilik selalu melihat nomornya sendiri; pembeli hanya
+                // melihat nomor bila penjual mengaktifkan "tampilkan nomor".
+                $canRevealPhone = ($user && $user->id === $seller->id)
+                    || ((bool) $seller->show_phone && ! empty($seller->phone));
+
                 return [
-                    'id' => $this->seller->id,
-                    'name' => $this->seller->name,
-                    'profile_photo_url' => $this->seller->profile_photo_url,
-                    'is_verified' => (bool) $this->seller->email_verified_at,
+                    'id' => $seller->id,
+                    'name' => $seller->name,
+                    'profile_photo_url' => $seller->profile_photo_url,
+                    'is_verified' => (bool) $seller->email_verified_at,
+                    'phone' => $canRevealPhone ? $seller->phone : null,
+                    'has_phone' => ! empty($seller->phone),
+                    'show_phone' => (bool) $seller->show_phone,
                 ];
             }),
             

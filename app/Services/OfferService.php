@@ -47,11 +47,21 @@ class OfferService
                 ->lockForUpdate()
                 ->first();
 
+            // Aturan giliran: ronde baru (tidak ada penawaran pending) hanya
+            // boleh dimulai pembeli. Penjual hanya boleh membalas/meng-counter
+            // penawaran pembeli.
+            if (! $existing && (int) $conversation->buyer_id !== $senderId) {
+                throw new \RuntimeException(
+                    'Penawaran baru hanya bisa dimulai oleh pembeli.',
+                    403,
+                );
+            }
+
             if ($existing) {
                 // Penawaran yang sudah dikirim tidak dapat diubah atau ditarik.
                 if ((int) $existing->sender_id === $senderId) {
                     throw new \RuntimeException(
-                        'Penawaran yang sudah dikirim tidak dapat diubah atau ditarik.',
+                        'Penawaran kamu masih menunggu jawaban lawan.',
                         409,
                     );
                 }
@@ -220,10 +230,11 @@ class OfferService
 
     /**
      * Menolak penawaran. Deal tetap negotiating agar pembeli bisa menawar lagi.
+     * Alasan penolakan (opsional) dicatat sebagai pesan sistem di chat.
      */
-    public function rejectOffer(Message $offer, int $rejectorId): void
+    public function rejectOffer(Message $offer, int $rejectorId, ?string $reason = null): void
     {
-        DB::transaction(function () use ($offer, $rejectorId) {
+        DB::transaction(function () use ($offer, $rejectorId, $reason) {
             /** @var Message $offer */
             $offer = Message::lockForUpdate()->findOrFail($offer->id);
 
@@ -236,6 +247,43 @@ class OfferService
             }
 
             $offer->update(['offer_status' => 'rejected']);
+
+            $conversation = Conversation::lockForUpdate()->findOrFail($offer->conversation_id);
+
+            $body = 'Penawaran '.$this->rupiah((float) $offer->offer_price).' ditolak.';
+            $trimmedReason = $reason !== null ? trim($reason) : '';
+            if ($trimmedReason !== '') {
+                $body .= ' Alasan: '.$trimmedReason;
+            }
+
+            $this->createSystemMessage($conversation, $rejectorId, $body);
+
+            $conversation->touch();
+        });
+    }
+
+    /**
+     * Menarik (membatalkan) penawaran milik sendiri yang masih pending.
+     */
+    public function cancelOffer(Message $offer, int $senderId): void
+    {
+        DB::transaction(function () use ($offer, $senderId) {
+            /** @var Message $offer */
+            $offer = Message::lockForUpdate()->findOrFail($offer->id);
+
+            if ($offer->type !== 'offer') {
+                throw new \RuntimeException('Pesan ini bukan penawaran.', 422);
+            }
+
+            if ($offer->offer_status !== 'pending') {
+                throw new \RuntimeException('Penawaran sudah tidak dapat dibatalkan.', 409);
+            }
+
+            if ((int) $offer->sender_id !== $senderId) {
+                throw new \RuntimeException('Kamu hanya dapat membatalkan penawaran sendiri.', 403);
+            }
+
+            $offer->update(['offer_status' => 'withdrawn']);
 
             $conversation = Conversation::lockForUpdate()->findOrFail($offer->conversation_id);
             $conversation->touch();

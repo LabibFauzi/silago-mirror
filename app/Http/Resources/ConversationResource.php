@@ -70,6 +70,13 @@ class ConversationResource extends JsonResource
                 'name' => $otherParty?->name,
                 'profile_photo_url' => $otherParty?->profile_photo_url,
                 'is_verified' => (bool) $otherParty?->email_verified_at,
+                // Nomor WhatsApp hanya dibagikan bila lawan bicara
+                // mengaktifkan "tampilkan nomor".
+                'phone' => ($otherParty?->show_phone && $otherParty?->phone)
+                    ? $otherParty->phone
+                    : null,
+                'has_phone' => ! empty($otherParty?->phone),
+                'show_phone' => (bool) $otherParty?->show_phone,
             ],
             'last_message' => $last ? [
                 'body' => $lastBody,

@@ -19,7 +19,7 @@ class ProfileController extends Controller
 {
     public function me(Request $request)
     {
-        return response()->json(new UserResource($request->user()));
+        return response()->json(['user' => new UserResource($request->user())]);
     }
 
     public function update(UpdateProfileRequest $request)
@@ -30,9 +30,9 @@ class ProfileController extends Controller
         if ($request->has('name')) {
             $data['name'] = $request->name;
         }
-        if ($request->has('phone')) {
-            $data['phone'] = $request->phone;
-        }
+
+        // Nomor telepon hanya bisa diubah lewat verifikasi OTP WhatsApp
+        // (PhoneVerificationController), jadi tidak di-set di sini.
 
         if ($request->hasFile('profile_photo')) {
             if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
@@ -42,17 +42,24 @@ class ProfileController extends Controller
             $filename = Str::uuid() . '.' . $file->getClientOriginalExtension();
             $path = $file->storeAs('profile-photos', $filename, 'public');
             $data['profile_photo'] = $path;
+        } elseif ($request->boolean('remove_profile_photo')) {
+            // Hapus foto profil bila diminta.
+            if ($user->profile_photo && Storage::disk('public')->exists($user->profile_photo)) {
+                Storage::disk('public')->delete($user->profile_photo);
+            }
+            $data['profile_photo'] = null;
         }
 
         $user->update($data);
 
-        return response()->json(new UserResource($user->fresh()));
+        return response()->json(['user' => new UserResource($user->fresh())]);
     }
 
     public function updateFcmToken(Request $request)
     {
-        $request->validate(['fcm_token' => 'required|string']);
-        $request->user()->update(['fcm_token' => $request->fcm_token]);
+        $data = $request->validate(['fcm_token' => 'nullable|string']);
+        $token = trim((string) ($data['fcm_token'] ?? ''));
+        $request->user()->update(['fcm_token' => $token !== '' ? $token : null]);
         return response()->json(['message' => 'FCM Token updated']);
     }
 

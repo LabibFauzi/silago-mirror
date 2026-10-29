@@ -67,8 +67,8 @@ class DealResource extends JsonResource
             'actions' => [
                 'can_generate_qr' => $isSeller && $isAgreed,
                 'can_complete' => $isBuyer && $isAgreed,
-                'can_cancel' => $isParticipant && $isAgreed,
-                'can_renegotiate' => $isParticipant && $isAgreed,
+                'can_cancel' => $isBuyer && $isAgreed,
+                'can_renegotiate' => $isBuyer && $isAgreed,
                 // Ulasan hanya boleh diberikan oleh pembeli.
                 'can_review' => $isCompleted && $isBuyer && ! $hasReviewed,
                 'can_report' => $isParticipant && in_array($this->status, ['agreed', 'completed', 'cancelled'], true),

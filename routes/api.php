@@ -47,6 +47,11 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::get('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'me']);
         Route::put('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
         Route::post('/me/fcm-token',  [\App\Http\Controllers\Api\V1\ProfileController::class, 'updateFcmToken']);
+
+        // Nomor WhatsApp (tanpa OTP, opsional untuk semua pengguna)
+        Route::put('/me/phone',              [\App\Http\Controllers\Api\V1\PhoneController::class, 'update']);
+        Route::post('/me/phone/visibility',  [\App\Http\Controllers\Api\V1\PhoneController::class, 'updateVisibility']);
+        Route::delete('/me/phone',           [\App\Http\Controllers\Api\V1\PhoneController::class, 'destroy']);
         // Route::post('/me/2fa/toggle', [\App\Http\Controllers\Api\V1\AuthController::class, 'toggleTwoFactor']); // 2FA disabled
         Route::get('/me/summary',     [\App\Http\Controllers\Api\V1\ProfileController::class, 'summary']);
         Route::get('/me/reviews',     [\App\Http\Controllers\Api\V1\ProfileController::class, 'reviews']);
@@ -81,6 +86,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         // Penawaran
         Route::post('/offers/{offer}/accept', [\App\Http\Controllers\Api\V1\OfferController::class, 'accept']);
         Route::post('/offers/{offer}/reject', [\App\Http\Controllers\Api\V1\OfferController::class, 'reject']);
+        Route::post('/offers/{offer}/cancel', [\App\Http\Controllers\Api\V1\OfferController::class, 'cancel']);
 
         // Transaksi
         Route::get('/deals',                      [\App\Http\Controllers\Api\V1\DealController::class, 'index']);

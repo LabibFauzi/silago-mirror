@@ -38,7 +38,9 @@ class NotificationService
             ]);
 
             if (config('services.fcm.enabled', false)) {
-                SendPushNotification::dispatch(
+                // Dikirim sinkron karena Render tidak menjalankan queue worker.
+                // Kegagalan push ditangkap di dalam job agar tidak mengganggu.
+                SendPushNotification::dispatchSync(
                     $userId,
                     $title,
                     $body,
@@ -46,7 +48,7 @@ class NotificationService
                         'type' => $type,
                         'reference_id' => $referenceId,
                     ]),
-                )->afterCommit();
+                );
             }
 
             return $notification;
