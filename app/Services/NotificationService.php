@@ -440,6 +440,25 @@ class NotificationService
         );
     }
 
+    public function productUnavailable(
+        int $userId,
+        int $conversationId,
+        string $productName,
+        int $productId,
+    ): void {
+        $this->updateOrCreateUnread(
+            $userId,
+            'product_unavailable',
+            $conversationId,
+            'Produk tidak tersedia',
+            "Produk \"{$productName}\" sudah tidak tersedia.",
+            [
+                'conversation_id' => $conversationId,
+                'product_id' => $productId,
+            ],
+        );
+    }
+
     private function updateOrCreateUnread(
         int $userId,
         string $type,

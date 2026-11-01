@@ -66,6 +66,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::put('/products/{product}',     [\App\Http\Controllers\Api\V1\ProductController::class, 'update']);
         Route::delete('/products/{product}',  [\App\Http\Controllers\Api\V1\ProductController::class, 'destroy']);
         Route::post('/products/{product}/renew',    [\App\Http\Controllers\Api\V1\ProductController::class, 'renew']);
+        Route::post('/products/{product}/status',   [\App\Http\Controllers\Api\V1\ProductController::class, 'updateStatus']);
         Route::post('/products/{product}/favorite', [\App\Http\Controllers\Api\V1\FavoriteController::class, 'toggle']);
         Route::post('/products/{product}/report',   [\App\Http\Controllers\Api\V1\ReportController::class, 'reportProduct']);
 
@@ -81,6 +82,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::get('/conversations/{conversation}',              [\App\Http\Controllers\Api\V1\ConversationController::class, 'show']);
         Route::get('/conversations/{conversation}/messages',     [\App\Http\Controllers\Api\V1\MessageController::class, 'index']);
         Route::post('/conversations/{conversation}/messages',    [\App\Http\Controllers\Api\V1\MessageController::class, 'store']);
+        Route::delete('/conversations/{conversation}/messages/{message}', [\App\Http\Controllers\Api\V1\MessageController::class, 'destroy']);
         Route::post('/conversations/{conversation}/read',        [\App\Http\Controllers\Api\V1\MessageController::class, 'markRead']);
         Route::post('/conversations/{conversation}/offers',      [\App\Http\Controllers\Api\V1\OfferController::class, 'store']);
 

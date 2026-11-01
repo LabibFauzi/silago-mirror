@@ -74,7 +74,8 @@ class MarketplaceDeal extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        // Riwayat deal tetap menampilkan produk walau sudah dihapus (soft delete).
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function buyer(): BelongsTo

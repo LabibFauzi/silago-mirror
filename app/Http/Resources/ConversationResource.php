@@ -39,15 +39,17 @@ class ConversationResource extends JsonResource
         $last = $this->lastMessage;
         $lastBody = '';
         if ($last) {
-            $lastBody = match ($last->type) {
-                'offer' => $last->offer_price
-                    ? 'Penawaran Rp'.number_format((float) $last->offer_price, 0, ',', '.')
-                    : 'Penawaran',
-                'location' => 'Lokasi dibagikan',
-                'image' => $last->image_caption ?: 'Foto',
-                'system' => (string) $last->message,
-                default => (string) ($last->message ?? ''),
-            };
+            $lastBody = $last->deleted_at !== null
+                ? 'Pesan ini telah dihapus'
+                : match ($last->type) {
+                    'offer' => $last->offer_price
+                        ? 'Penawaran Rp'.number_format((float) $last->offer_price, 0, ',', '.')
+                        : 'Penawaran',
+                    'location' => 'Lokasi dibagikan',
+                    'image' => $last->image_caption ?: 'Foto',
+                    'system' => (string) $last->message,
+                    default => (string) ($last->message ?? ''),
+                };
         }
 
         return [

@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\ProductImage;
 use App\Models\User;
 use App\Services\AuditLogService;
+use App\Services\NotificationService;
+use App\Services\ProductLifecycleService;
 use App\Services\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +23,9 @@ class StockController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly SettingService $settingService
+        private readonly SettingService $settingService,
+        private readonly ProductLifecycleService $productLifecycle,
+        private readonly NotificationService $notificationService,
     ) {}
 
     public function index(Request $request): View
@@ -259,34 +263,35 @@ class StockController extends Controller
      */
     public function destroy(Product $product): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Penghapusan barang langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
+        // Admin/moderator boleh menghapus barang siapa saja untuk moderasi.
+        $name = $product->name;
+        $id = $product->id;
+        $actorId = (int) (auth()->id() ?? 0);
 
         try {
-            DB::transaction(function () use ($product) {
-                $name = $product->name;
-                $id = $product->id;
+            $recipients = $this->productLifecycle->deleteProduct($product, $actorId);
 
-                foreach ($product->images as $img) {
-                    if ($img->image_path && Storage::disk('public')->exists($img->image_path)) {
-                        Storage::disk('public')->delete($img->image_path);
-                    }
-                }
-
-                $product->delete();
-
-                $this->auditLogService->log(
-                    'stock',
-                    'Hapus Barang (Maintenance)',
-                    "Barang #{$id} ({$name})",
-                    'Penghapusan barang langsung saat maintenance mode'
+            foreach ($recipients as $recipient) {
+                $this->notificationService->productUnavailable(
+                    $recipient['user_id'],
+                    $recipient['conversation_id'],
+                    $name,
+                    $id,
                 );
-            });
+            }
+
+            $this->auditLogService->log(
+                'stock',
+                'Hapus Barang',
+                "Barang #{$id} ({$name})",
+                'Produk dihapus (soft delete) oleh admin. Riwayat transaksi tetap disimpan.'
+            );
 
             return redirect()
                 ->route('admin.stock.index')
                 ->with('success', 'Barang berhasil dihapus.');
+        } catch (\RuntimeException $e) {
+            return back()->with('error', $e->getMessage());
         } catch (\Exception $e) {
             return back()->with('error', 'Gagal menghapus barang: ' . $e->getMessage());
         }

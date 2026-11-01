@@ -27,6 +27,18 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
 
         $middleware->statefulApi();
+
+        // Aplikasi ini tidak punya route bernama "login" (hanya "admin.login").
+        // Tanpa override, middleware "auth" akan memanggil route('login') dan
+        // melempar RouteNotFoundException sebelum AuthenticationException terbentuk,
+        // sehingga handler JSON di withExceptions() tidak pernah jalan.
+        $middleware->redirectGuestsTo(function ($request) {
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return null;
+            }
+
+            return route('admin.login');
+        });
     })
     ->withExceptions(function (Exceptions $exceptions) {
         // Format error API konsisten: {message, errors}

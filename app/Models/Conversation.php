@@ -19,7 +19,8 @@ class Conversation extends Model
 
     public function product(): BelongsTo
     {
-        return $this->belongsTo(Product::class);
+        // Riwayat chat tetap bisa menampilkan produk yang sudah dihapus.
+        return $this->belongsTo(Product::class)->withTrashed();
     }
 
     public function buyer(): BelongsTo

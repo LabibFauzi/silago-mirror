@@ -26,6 +26,7 @@ class StoreMessageRequest extends FormRequest
             'offer_price' => ['required_if:type,offer', 'numeric', 'min:1'],
             'offer_status' => ['nullable', 'string', 'in:pending,accepted,rejected,countered,withdrawn'],
             'parent_offer_id' => ['nullable', 'integer', 'exists:messages,id'],
+            'reply_to_id' => ['nullable', 'integer', 'exists:messages,id'],
         ];
     }
 }
