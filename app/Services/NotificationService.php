@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Jobs\SendPushNotification;
 use App\Models\Conversation;
-use App\Models\ConversationPresence;
 use App\Models\MarketplaceDeal;
 use App\Models\Message;
 use App\Models\Notification;
@@ -37,19 +36,7 @@ class NotificationService
                 'data' => $data ?: null,
             ]);
 
-            if (config('services.fcm.enabled', false)) {
-                // Dikirim sinkron karena Render tidak menjalankan queue worker.
-                // Kegagalan push ditangkap di dalam job agar tidak mengganggu.
-                SendPushNotification::dispatchSync(
-                    $userId,
-                    $title,
-                    $body,
-                    array_merge($data, [
-                        'type' => $type,
-                        'reference_id' => $referenceId,
-                    ]),
-                );
-            }
+            $this->push($userId, $title, $body, $type, $referenceId, $data);
 
             return $notification;
         } catch (\Throwable $e) {
@@ -63,14 +50,49 @@ class NotificationService
         }
     }
 
+    /**
+     * Kirim push FCM (bila aktif). Kegagalan push tidak mengganggu alur utama.
+     */
+    private function push(
+        int $userId,
+        string $title,
+        string $body,
+        string $type,
+        ?int $referenceId = null,
+        array $data = [],
+    ): void {
+        if (! config('services.fcm.enabled', false)) {
+            return;
+        }
+
+        try {
+            $payload = array_merge($data, [
+                'type'         => $type,
+                'reference_id' => $referenceId,
+            ]);
+
+            // Selalu jalankan sinkron. Render (dan sebagian host lain) tidak
+            // punya queue worker, sehingga dispatch()/afterResponse() membuat
+            // push tidak pernah terkirim dan popup tidak muncul.
+            SendPushNotification::dispatchSync(
+                $userId, $title, $body, $payload,
+            );
+        } catch (\Throwable $e) {
+            Log::warning('Gagal mengirim push', [
+                'user_id' => $userId,
+                'type'    => $type,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+    }
+
     // ---- Chat ----
 
     public function newMessage(int $userId, Conversation $conversation, string $senderName): void
     {
-        // Jangan buat notifikasi bila penerima sedang membuka percakapan ini.
-        if ($this->isViewingConversation($userId, $conversation->id)) {
-            return;
-        }
+        // Notifikasi dikirim untuk SETIAP pesan yang diterima, termasuk saat
+        // penerima sedang membuka percakapan. Hapus pengecekan presence agar
+        // popup tidak pernah terlewat.
 
         $existing = Notification::query()
             ->where('user_id', $userId)
@@ -103,6 +125,10 @@ class NotificationService
                 'body' => Str::limit($body, 255, ''),
                 'data' => $data,
             ]);
+
+            // Tetap kirim push walau record in-app hanya diperbarui, supaya
+            // popup muncul untuk pesan berikutnya.
+            $this->push($userId, 'Pesan baru', $body, 'new_message', $conversation->id, $data);
 
             return;
         }
@@ -231,6 +257,23 @@ class NotificationService
             [
                 'conversation_id' => $deal->conversation_id,
                 'deal_id' => $deal->id,
+            ],
+        );
+    }
+
+    public function sengketaSelesai(int $userId, int $dealId, string $note): void
+    {
+        $deal = MarketplaceDeal::find($dealId);
+
+        $this->updateOrCreateUnread(
+            $userId,
+            'dispute_resolved',
+            $dealId,
+            'Sengketa selesai',
+            "Sengketa transaksi telah diselesaikan admin. {$note}.",
+            [
+                'conversation_id' => $deal?->conversation_id,
+                'deal_id' => $dealId,
             ],
         );
     }
@@ -420,30 +463,13 @@ class NotificationService
                 'data' => $data ?: null,
             ]);
 
+            // Tetap kirim push walau record in-app hanya diperbarui.
+            $this->push($userId, $title, $body, $type, $referenceId, $data);
+
             return;
         }
 
         $this->send($userId, $title, $body, $type, $referenceId, $data);
-    }
-
-    private function isViewingConversation(int $userId, int $conversationId): bool
-    {
-        try {
-            return ConversationPresence::query()
-                ->where('conversation_id', $conversationId)
-                ->where('user_id', $userId)
-                ->where('last_seen_at', '>=', now()->subSeconds(20))
-                ->exists();
-        } catch (\Throwable $e) {
-            // Presence opsional; jangan sampai mengganggu pengiriman pesan.
-            Log::warning('Gagal memeriksa presence percakapan', [
-                'conversation_id' => $conversationId,
-                'user_id' => $userId,
-                'error' => $e->getMessage(),
-            ]);
-
-            return false;
-        }
     }
 
     private function rupiah(float $value): string

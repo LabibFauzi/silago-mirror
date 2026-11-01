@@ -60,7 +60,36 @@ class ProfileController extends Controller
         $data = $request->validate(['fcm_token' => 'nullable|string']);
         $token = trim((string) ($data['fcm_token'] ?? ''));
         $request->user()->update(['fcm_token' => $token !== '' ? $token : null]);
+        
+        \Log::info('FCM token updated', [
+            'user_id' => $request->user()->id,
+            'token_prefix' => $token ? substr($token, 0, 12) . '...' : 'null',
+        ]);
+        
         return response()->json(['message' => 'FCM Token updated']);
+    }
+
+    public function testPushNotification(Request $request)
+    {
+        $user = $request->user();
+        
+        if (!$user->fcm_token) {
+            return response()->json([
+                'message' => 'No FCM token found. Please login again to register token.',
+            ], 400);
+        }
+        
+        \App\Jobs\SendPushNotification::dispatchSync(
+            $user->id,
+            'Test Notifikasi',
+            'Ini adalah test push notification dari SILAGO. Jika kamu melihat ini, notifikasi berhasil!',
+            ['type' => 'test', 'timestamp' => now()->toIso8601String()]
+        );
+        
+        return response()->json([
+            'message' => 'Test notification sent. Check your device.',
+            'token_prefix' => substr($user->fcm_token, 0, 12) . '...',
+        ]);
     }
 
     public function summary(Request $request)

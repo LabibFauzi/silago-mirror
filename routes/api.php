@@ -47,6 +47,7 @@ Route::prefix('v1')->middleware('maintenance')->group(function () {
         Route::get('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'me']);
         Route::put('/me',             [\App\Http\Controllers\Api\V1\ProfileController::class, 'update']);
         Route::post('/me/fcm-token',  [\App\Http\Controllers\Api\V1\ProfileController::class, 'updateFcmToken']);
+        Route::post('/me/test-push',  [\App\Http\Controllers\Api\V1\ProfileController::class, 'testPushNotification']);
 
         // Nomor WhatsApp (tanpa OTP, opsional untuk semua pengguna)
         Route::put('/me/phone',              [\App\Http\Controllers\Api\V1\PhoneController::class, 'update']);
