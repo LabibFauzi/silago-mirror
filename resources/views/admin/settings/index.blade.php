@@ -57,7 +57,7 @@
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-ink mb-1">Daftar Kata Terlarang</label>
-                    <p class="text-xs text-muted mb-2">Pisahkan dengan koma. Contoh: judi, narkoba, penipuan</p>
+                    <p class="text-xs text-muted mb-2">Pisahkan dengan koma atau baris baru. Contoh: judi, narkoba, penipuan</p>
                     <textarea name="banned_words" rows="3" class="w-full p-2 border border-line rounded-lg focus:ring-brand focus:border-brand" placeholder="kata1, kata2, kata3">{{ $settings['banned_words'] ?? '' }}</textarea>
                 </div>
             </div>
