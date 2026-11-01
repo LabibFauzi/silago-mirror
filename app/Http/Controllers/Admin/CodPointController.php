@@ -16,7 +16,7 @@ class CodPointController extends Controller
 
     public function index(): View
     {
-        $codPoints = CodPoint::latest()->paginate(15);
+        $codPoints = CodPoint::latest()->paginate(10);
         return view('admin.cod_points.index', compact('codPoints'));
     }
 

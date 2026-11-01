@@ -31,7 +31,6 @@ class SettingController extends Controller
             'max_photos' => ['nullable', 'integer', 'min:1'],
             'listing_active_days' => ['nullable', 'integer', 'min:1'],
             'session_timeout_minutes' => ['nullable', 'integer', 'min:1'],
-            'maintenance_mode' => ['nullable', 'boolean'],
             'banned_words_enabled' => ['nullable', 'boolean'],
             'banned_words' => ['nullable', 'string'],
         ]);
@@ -55,8 +54,6 @@ class SettingController extends Controller
                         if ($request->has('session_timeout_minutes')) {
                             $this->settingService->set('session_timeout_minutes', $request->input('session_timeout_minutes'));
                         }
-                    } elseif ($section === 'system') {
-                        $this->settingService->set('maintenance_mode', $request->has('maintenance_mode') ? '1' : '0');
                     }
                 } else {
                     $keys = [
@@ -71,7 +68,7 @@ class SettingController extends Controller
                     }
 
                     if ($request->has('has_checkboxes')) {
-                        foreach (['maintenance_mode', 'banned_words_enabled'] as $checkbox) {
+                        foreach (['banned_words_enabled'] as $checkbox) {
                             $this->settingService->set($checkbox, $request->has($checkbox) ? '1' : '0');
                         }
                     }

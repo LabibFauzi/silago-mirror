@@ -138,8 +138,6 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
                 </svg>
             </button>
-            <h2 class="truncate text-base font-semibold text-ink sm:text-lg">@yield('title', 'Dashboard')</h2>
-            
             <div class="ml-auto flex items-center gap-3">
                 <!-- Notification Bell & Popup Dropdown -->
                 <div x-data="{ notifOpen: false }" @click.outside="notifOpen = false" class="relative">

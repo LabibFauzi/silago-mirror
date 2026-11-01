@@ -33,7 +33,7 @@ class VerificationController extends Controller
                 });
             })
             ->latest()
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         $pendingCount = Product::where('verification_status', 'pending')->count();

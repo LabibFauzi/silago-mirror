@@ -24,7 +24,7 @@ class AuditController extends Controller
                 });
             })
             ->latest()
-            ->paginate(20)
+            ->paginate(10)
             ->withQueryString();
 
         return view('admin.audit.index', compact('auditLogs', 'category'));

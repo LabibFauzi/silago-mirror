@@ -2,7 +2,12 @@
 @section('title', 'Verifikasi Barang')
 
 @section('content')
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+<div>
+    <h1 class="text-2xl font-bold tracking-tight text-ink">Verifikasi Barang</h1>
+    <p class="mt-1 text-sm text-muted">Tinjau dan setujui barang yang diajukan penjual</p>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
     <div class="bg-white rounded-xl p-6 border border-line shadow-sm">
         <h3 class="text-sm font-medium text-muted mb-2">Menunggu Verifikasi</h3>
         <div class="text-3xl font-bold text-ink">{{ number_format($pendingCount ?? 0, 0, ',', '.') }}</div>
@@ -122,125 +127,200 @@
     </div>
     @endif
 
-    <!-- Modal Tinjau -->
-    <div x-show="showModal" class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
-        <div class="flex items-center justify-center min-h-screen px-4 pt-4 pb-20 text-center sm:p-0">
-            <div x-show="showModal" @click="showModal = false" class="fixed inset-0 transition-opacity bg-gray-900 bg-opacity-50"></div>
-            
-            <div x-show="showModal" class="inline-block w-full max-w-2xl p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white shadow-xl rounded-2xl relative z-10">
-                <div class="flex justify-between items-center mb-5">
-                    <h3 class="text-lg font-bold text-ink" x-text="selectedProduct?.name"></h3>
-                    <button @click="showModal = false" class="text-gray-400 hover:text-gray-500">
-                        <svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                    </button>
-                </div>
-                
-                <div class="mb-4">
-                    <div class="relative h-64 w-full overflow-hidden rounded-lg border border-line bg-gray-100">
-                        <template x-if="galleryImages.length > 0">
-                            <img :src="galleryImages[galleryIndex]" class="h-full w-full object-contain" alt="">
-                        </template>
-                        <template x-if="galleryImages.length === 0">
-                            <div class="flex h-full w-full items-center justify-center text-sm text-muted">Belum ada foto</div>
-                        </template>
+    <!-- Modal Tinjau Verifikasi -->
+    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto" style="display: none;">
+        <div class="flex min-h-screen items-center justify-center p-4">
+            <div x-show="showModal" @click="showModal = false" class="fixed inset-0 bg-black/60 transition-opacity"></div>
 
-                        <template x-if="galleryImages.length > 1">
-                            <div>
-                                <button type="button" @click="prevImage()"
-                                        class="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
-                                </button>
-                                <button type="button" @click="nextImage()"
-                                        class="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
-                                </button>
-                                <div class="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
-                                    <span x-text="galleryIndex + 1"></span>/<span x-text="galleryImages.length"></span>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
+            <div x-show="showModal" x-transition
+                 class="relative z-10 flex max-h-[92vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-2xl">
 
-                    <template x-if="galleryImages.length > 1">
-                        <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
-                            <template x-for="(url, idx) in galleryImages" :key="idx">
-                                <button type="button" @click="galleryIndex = idx"
-                                        class="h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors"
-                                        :class="galleryIndex === idx ? 'border-brand' : 'border-line hover:border-brand/60'">
-                                    <img :src="url" class="h-full w-full object-cover" alt="">
-                                </button>
+                {{-- Header --}}
+                <div class="flex shrink-0 items-start justify-between gap-4 border-b border-line px-6 py-4">
+                    <div class="min-w-0">
+                        <div class="mb-1.5 flex flex-wrap items-center gap-2">
+                            <span class="text-[11px] font-semibold uppercase tracking-wide text-faint">Tinjau Verifikasi</span>
+                            <template x-if="selectedProduct?.verification_status === 'pending'">
+                                <span class="rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800">Menunggu Verifikasi</span>
+                            </template>
+                            <template x-if="selectedProduct?.verification_status === 'verified'">
+                                <span class="rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">Disetujui</span>
+                            </template>
+                            <template x-if="selectedProduct?.verification_status === 'rejected'">
+                                <span class="rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-700">Ditolak</span>
                             </template>
                         </div>
-                    </template>
+                        <h3 class="truncate text-lg font-bold text-ink" x-text="selectedProduct?.name || 'Detail Barang'"></h3>
+                        <p class="text-xs text-muted">ID #<span x-text="selectedProduct?.id || '-'"></span></p>
+                    </div>
+                    <button @click="showModal = false" class="rounded-lg p-1.5 text-faint transition-colors hover:bg-gray-100 hover:text-ink">
+                        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+                    </button>
                 </div>
 
-                <div class="grid grid-cols-2 gap-4 mb-6 text-sm">
-                    <div><span class="text-muted block">Penjual:</span> <span class="font-medium text-ink" x-text="selectedProduct?.seller?.name || '-'"></span></div>
-                    <div><span class="text-muted block">Kategori:</span> <span class="font-medium text-ink" x-text="selectedProduct?.category?.name || '-'"></span></div>
-                    <div><span class="text-muted block">Harga:</span> <span class="font-medium text-ink" x-text="'Rp ' + (selectedProduct?.price || 0)"></span></div>
-                    <div class="col-span-2"><span class="text-muted block">Hasil Pindai (AI):</span> <span class="font-medium text-ink" x-text="selectedProduct?.scan_result || '-'"></span></div>
-                </div>
+                {{-- Body --}}
+                <div class="flex-1 overflow-y-auto px-6 py-5">
+                    <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
 
-                {{-- Detail informasi barang --}}
-                <div class="mb-6 space-y-3 text-sm">
-                    <template x-if="selectedProduct?.description">
+                        {{-- Gallery --}}
                         <div>
-                            <span class="text-muted block">Deskripsi</span>
-                            <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.description"></p>
-                        </div>
-                    </template>
-                    <template x-if="selectedProduct?.specification">
-                        <div>
-                            <span class="text-muted block">Spesifikasi</span>
-                            <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.specification"></p>
-                        </div>
-                    </template>
-                    <template x-if="selectedProduct?.completeness">
-                        <div>
-                            <span class="text-muted block">Kelengkapan</span>
-                            <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.completeness"></p>
-                        </div>
-                    </template>
-                    <template x-if="selectedProduct?.sell_reason">
-                        <div>
-                            <span class="text-muted block">Alasan Dijual</span>
-                            <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.sell_reason"></p>
-                        </div>
-                    </template>
-                    <template x-if="selectedProduct?.condition">
-                        <div>
-                            <span class="text-muted block">Kondisi</span>
-                            <p class="font-medium text-ink" x-text="selectedProduct.condition"></p>
-                        </div>
-                    </template>
-                </div>
+                            <div class="relative h-64 w-full overflow-hidden rounded-xl border border-line bg-gray-100">
+                                <template x-if="galleryImages.length > 0">
+                                    <img :src="galleryImages[galleryIndex]" class="h-full w-full object-contain" alt="">
+                                </template>
+                                <template x-if="galleryImages.length === 0">
+                                    <div class="flex h-full w-full items-center justify-center text-sm text-muted">Belum ada foto</div>
+                                </template>
 
-                <template x-if="selectedProduct?.verification_status === 'pending'">
-                    <div class="flex gap-4">
-                        <form method="POST" :action="`/admin/verification/${selectedProduct?.id}/approve`" class="flex-1">
-                            @csrf
-                            <button type="submit" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded-lg">Setujui Barang</button>
-                        </form>
-                        
-                        <div x-data="{ showRejectForm: false }" class="flex-1">
-                            <button x-show="!showRejectForm" @click="showRejectForm = true" type="button" class="w-full bg-red-100 hover:bg-red-200 text-red-700 font-medium py-2 px-4 rounded-lg">Tolak...</button>
-                            
-                            <form x-show="showRejectForm" method="POST" :action="`/admin/verification/${selectedProduct?.id}/reject`" class="mt-2">
-                                @csrf
-                                <textarea name="rejection_note" rows="2" class="w-full p-2 border border-line rounded-lg text-sm mb-2" placeholder="Alasan penolakan..." required></textarea>
-                                <div class="flex gap-2">
-                                    <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg text-sm">Konfirmasi Tolak</button>
-                                    <button type="button" @click="showRejectForm = false" class="bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2 px-4 rounded-lg text-sm">Batal</button>
+                                <template x-if="galleryImages.length > 1">
+                                    <div>
+                                        <button type="button" @click="prevImage()"
+                                                class="absolute left-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/></svg>
+                                        </button>
+                                        <button type="button" @click="nextImage()"
+                                                class="absolute right-2 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-full bg-black/50 text-white hover:bg-black/70">
+                                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+                                        </button>
+                                        <div class="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 text-xs font-semibold text-white">
+                                            <span x-text="galleryIndex + 1"></span>/<span x-text="galleryImages.length"></span>
+                                        </div>
+                                    </div>
+                                </template>
+                            </div>
+
+                            <template x-if="galleryImages.length > 1">
+                                <div class="mt-2 flex gap-2 overflow-x-auto pb-1">
+                                    <template x-for="(url, idx) in galleryImages" :key="idx">
+                                        <button type="button" @click="galleryIndex = idx"
+                                                class="h-14 w-14 shrink-0 overflow-hidden rounded-lg border-2 transition-colors"
+                                                :class="galleryIndex === idx ? 'border-brand' : 'border-line hover:border-brand/60'">
+                                            <img :src="url" class="h-full w-full object-cover" alt="">
+                                        </button>
+                                    </template>
                                 </div>
-                            </form>
+                            </template>
+                        </div>
+
+                        {{-- Details --}}
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-2 gap-3 rounded-xl border border-line bg-page/60 p-4 text-sm">
+                                <div>
+                                    <span class="block text-xs text-muted">Penjual</span>
+                                    <span class="font-medium text-ink" x-text="selectedProduct?.seller?.name || '-'"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-muted">Kategori</span>
+                                    <span class="font-medium text-ink" x-text="selectedProduct?.category?.name || '-'"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-muted">Harga</span>
+                                    <span class="font-semibold text-ink" x-text="'Rp ' + Number(selectedProduct?.price || 0).toLocaleString('id-ID')"></span>
+                                </div>
+                                <div>
+                                    <span class="block text-xs text-muted">Kondisi</span>
+                                    <span class="font-medium text-ink" x-text="selectedProduct?.condition || '-'"></span>
+                                </div>
+                            </div>
+
+                            {{-- Moderasi Konten --}}
+                            <div class="rounded-xl border p-4"
+                                 :class="selectedProduct?.scan_result === 'flagged' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'">
+                                <div class="flex items-center justify-between gap-2">
+                                    <h4 class="text-sm font-bold"
+                                        :class="selectedProduct?.scan_result === 'flagged' ? 'text-red-800' : 'text-green-800'">Moderasi Konten</h4>
+                                    <template x-if="selectedProduct?.scan_result === 'flagged'">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M4.5 19h15a1.5 1.5 0 001.3-2.25l-7.5-13a1.5 1.5 0 00-2.6 0l-7.5 13A1.5 1.5 0 004.5 19z"/></svg>
+                                            Ditandai
+                                        </span>
+                                    </template>
+                                    <template x-if="selectedProduct?.scan_result !== 'flagged'">
+                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                                            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                                            Aman
+                                        </span>
+                                    </template>
+                                </div>
+                                <p class="mt-2 text-xs"
+                                   :class="selectedProduct?.scan_result === 'flagged' ? 'text-red-700' : 'text-green-700'">
+                                    <span x-show="selectedProduct?.scan_result === 'flagged'">Teks barang terindikasi mengandung kata terlarang.</span>
+                                    <span x-show="selectedProduct?.scan_result !== 'flagged'">Tidak ada kata terlarang yang terdeteksi pada nama atau deskripsi barang.</span>
+                                </p>
+                                <template x-if="selectedProduct?.scan_note">
+                                    <div class="mt-2 rounded-lg bg-white/70 px-3 py-2 text-xs text-ink">
+                                        Kata terdeteksi: <span class="font-bold" x-text="selectedProduct.scan_note"></span>
+                                    </div>
+                                </template>
+                            </div>
+
+                            {{-- Detail barang --}}
+                            <div class="space-y-3 text-sm">
+                                <template x-if="selectedProduct?.description">
+                                    <div>
+                                        <span class="block text-xs text-muted">Deskripsi</span>
+                                        <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.description"></p>
+                                    </div>
+                                </template>
+                                <template x-if="selectedProduct?.specification">
+                                    <div>
+                                        <span class="block text-xs text-muted">Spesifikasi</span>
+                                        <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.specification"></p>
+                                    </div>
+                                </template>
+                                <template x-if="selectedProduct?.completeness">
+                                    <div>
+                                        <span class="block text-xs text-muted">Kelengkapan</span>
+                                        <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.completeness"></p>
+                                    </div>
+                                </template>
+                                <template x-if="selectedProduct?.sell_reason">
+                                    <div>
+                                        <span class="block text-xs text-muted">Alasan Dijual</span>
+                                        <p class="whitespace-pre-line font-medium text-ink" x-text="selectedProduct.sell_reason"></p>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
-                </template>
-                <template x-if="selectedProduct?.verification_status !== 'pending'">
-                    <div class="text-center p-4 bg-gray-50 rounded-lg text-sm text-muted">
-                        Barang ini sudah <span x-text="selectedProduct?.verification_status" class="font-bold"></span>.
-                    </div>
-                </template>
+                </div>
+
+                {{-- Footer --}}
+                <div class="shrink-0 border-t border-line bg-gray-50/80 px-6 py-4">
+                    <template x-if="selectedProduct?.verification_status === 'pending'">
+                        <div class="flex flex-col gap-3 sm:flex-row sm:items-start">
+                            <form method="POST" :action="`/admin/verification/${selectedProduct?.id}/approve`" class="sm:flex-1">
+                                @csrf
+                                <button type="submit" class="w-full rounded-lg bg-green-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-green-700">Setujui Barang</button>
+                            </form>
+
+                            <div x-data="{ showRejectForm: false }" class="sm:flex-1">
+                                <button x-show="!showRejectForm" @click="showRejectForm = true" type="button"
+                                        class="w-full rounded-lg border border-red-300 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 transition hover:bg-red-100">Tolak Barang</button>
+                                <form x-show="showRejectForm" method="POST" :action="`/admin/verification/${selectedProduct?.id}/reject`" class="space-y-2">
+                                    @csrf
+                                    <textarea name="rejection_note" rows="2" class="w-full rounded-lg border border-line p-2 text-sm" placeholder="Alasan penolakan..." required></textarea>
+                                    <div class="flex gap-2">
+                                        <button type="submit" class="flex-1 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700">Konfirmasi Tolak</button>
+                                        <button type="button" @click="showRejectForm = false" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted hover:bg-gray-200">Batal</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+                    </template>
+                    <template x-if="selectedProduct?.verification_status === 'verified'">
+                        <div class="flex items-center gap-2 rounded-lg bg-green-50 px-4 py-3 text-sm font-medium text-green-800">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>
+                            Barang ini sudah disetujui.
+                        </div>
+                    </template>
+                    <template x-if="selectedProduct?.verification_status === 'rejected'">
+                        <div class="flex items-center gap-2 rounded-lg bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                            Barang ini sudah ditolak.
+                        </div>
+                    </template>
+                </div>
             </div>
         </div>
     </div>

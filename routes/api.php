@@ -8,27 +8,24 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 | Semua route API menggunakan prefix /api/v1 dan autentikasi Sanctum.
 | Middleware:
-|   - maintenance: blokir saat mode maintenance (kecuali app-config)
 |   - auth:sanctum: wajib login
 |   - user.active: tolak pengguna suspended
 */
 
 // ─── Publik: tidak perlu login ─────────────────────────────────────────────
-Route::prefix('v1')->middleware('maintenance')->group(function () {
+Route::prefix('v1')->group(function () {
     Route::get('/app-config', [\App\Http\Controllers\Api\V1\ConfigController::class, 'index']);
 
     // Endpoint internal untuk cron pembersihan (secret token).
-    Route::post('/internal/chat/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeChats'])
-        ->withoutMiddleware('maintenance');
-    Route::post('/internal/notifications/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeNotifications'])
-        ->withoutMiddleware('maintenance');
+    Route::post('/internal/chat/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeChats']);
+    Route::post('/internal/notifications/purge', [\App\Http\Controllers\Api\V1\InternalCronController::class, 'purgeNotifications']);
 
     // Autentikasi
     Route::prefix('auth')->group(function () {
         Route::post('/register',             [\App\Http\Controllers\Api\V1\AuthController::class, 'register']);
         Route::post('/verify-email',         [\App\Http\Controllers\Api\V1\AuthController::class, 'verifyEmail']);
         Route::post('/resend-verification',  [\App\Http\Controllers\Api\V1\AuthController::class, 'resendVerification']);
-        Route::post('/login',                [\App\Http\Controllers\Api\V1\AuthController::class, 'login'])->withoutMiddleware('maintenance');
+        Route::post('/login',                [\App\Http\Controllers\Api\V1\AuthController::class, 'login']);
         Route::post('/verify-otp',           [\App\Http\Controllers\Api\V1\AuthController::class, 'verifyOtp']);
         Route::post('/resend-otp',           [\App\Http\Controllers\Api\V1\AuthController::class, 'resendOtp']);
         Route::post('/login-google',         [\App\Http\Controllers\Api\V1\AuthController::class, 'loginGoogle']);

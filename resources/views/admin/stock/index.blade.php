@@ -7,22 +7,10 @@
 @endphp
 <div x-data="stockManager()" class="space-y-6">
 
-    {{-- Banner Notifikasi Mode Maintenance --}}
-    @if(!empty($isMaintenance))
-    <div class="rounded-xl border border-red-200 bg-red-50 p-4 flex flex-wrap items-center justify-between gap-3 shadow-sm">
-        <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600 text-lg">🛠️</span>
-            <div>
-                <p class="text-sm font-bold text-red-800">Mode Maintenance Aktif — CRUD Barang Terbuka</p>
-                <p class="text-xs text-red-700">Anda dapat menambah, mengubah, dan menghapus data barang secara langsung di halaman ini.</p>
-            </div>
-        </div>
-        <button type="button" @click="openCreate()" class="flex items-center gap-1.5 rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-green-700 transition-colors">
-            <svg class="h-4 w-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
-            Tambah Barang
-        </button>
+    <div>
+        <h1 class="text-2xl font-bold tracking-tight text-ink">Barang</h1>
+        <p class="mt-1 text-sm text-muted">Daftar seluruh barang yang ada di SILAGO</p>
     </div>
-    @endif
 
     {{-- Kartu Ringkasan Barang --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -132,17 +120,9 @@
                         </td>
                         <td class="px-6 py-4 text-muted text-xs">{{ $product->created_at ? $product->created_at->format('d M Y H:i') : '-' }}</td>
                         
-                        @if(!empty($isMaintenance))
-                        <td class="px-6 py-4 text-right whitespace-nowrap space-x-2">
-                            <button @click="openDetail({{ $product->id }})" class="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-green-700/20 transition hover:bg-green-700 hover:shadow-md active:scale-95"><svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Detail</button>
-                            <button @click="openEdit({{ $product->id }})" class="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-blue-700/20 transition hover:bg-blue-700 hover:shadow-md active:scale-95"><svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z"/></svg>Ubah</button>
-                            <button @click="confirmDelete({{ $product->id }}, '{{ addslashes($product->name) }}')" class="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-red-700/20 transition hover:bg-red-700 hover:shadow-md active:scale-95"><svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>Hapus</button>
-                        </td>
-                        @else
                         <td class="px-6 py-4 text-right whitespace-nowrap">
                             <button @click="openDetail({{ $product->id }})" class="inline-flex items-center gap-1.5 justify-center whitespace-nowrap rounded-lg bg-green-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm ring-1 ring-inset ring-green-700/20 transition hover:bg-green-700 hover:shadow-md active:scale-95"><svg class="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178zM15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>Detail</button>
                         </td>
-                        @endif
                     </tr>
                     @empty
                     <tr>
@@ -164,227 +144,6 @@
         </div>
         @endif
     </div>
-
-    {{-- ═══════════ Modal Tambah / Ubah Barang (Mode Maintenance) ═══════════ --}}
-    @if(!empty($isMaintenance))
-    <div x-show="showModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center p-4">
-            <div x-show="showModal" @click="closeModal()" class="fixed inset-0 bg-black/50 transition-opacity"></div>
-
-            <div x-show="showModal" x-transition
-                 class="relative z-10 w-full max-w-3xl rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-
-                <form :action="formAction" method="POST" enctype="multipart/form-data" class="flex flex-col h-full max-h-[90vh]">
-                    @csrf
-                    <input type="hidden" name="_form_action" :value="formAction">
-                    <input type="hidden" name="_method" value="PUT" x-bind:disabled="!isEdit">
-
-                    {{-- Modal Header --}}
-                    <div class="flex items-center justify-between border-b border-line px-6 py-4 bg-white shrink-0">
-                        <div>
-                            <h3 class="text-lg font-bold text-ink" x-text="isEdit ? 'Ubah Data Barang' : 'Tambah Barang Baru'"></h3>
-                            <p class="text-xs text-muted">Kelola data barang langsung saat Mode Maintenance aktif.</p>
-                        </div>
-                        <button type="button" @click="closeModal()" class="rounded-lg p-1.5 text-faint hover:bg-gray-100 hover:text-ink transition-colors">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
-                        </button>
-                    </div>
-
-                    {{-- Modal Body --}}
-                    <div class="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-
-                        {{-- Alert Error Validasi --}}
-                        @if($errors->any())
-                        <div class="rounded-xl border border-red-200 bg-red-50 p-4">
-                            <div class="flex items-center gap-2 font-semibold text-red-800 text-sm mb-1.5">
-                                <svg class="h-5 w-5 text-red-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
-                                <span>Gagal menyimpan data! Mohon periksa {{ $errors->count() }} kesalahan input:</span>
-                            </div>
-                            <ul class="list-disc pl-7 text-xs text-red-700 space-y-1">
-                                @foreach($errors->all() as $error)
-                                    <li>{{ $error }}</li>
-                                @endforeach
-                            </ul>
-                        </div>
-                        @endif
-
-                        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {{-- 1. Penjual (User Select) --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Penjual (User) <span class="text-red-500">*</span></label>
-                                <select name="seller_id" x-model="formData.seller_id"
-                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('seller_id') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                    <option value="">— Pilih Penjual —</option>
-                                    @foreach($sellers as $s)
-                                        <option value="{{ $s->id }}">#{{ $s->id }} - {{ $s->name }} ({{ $s->email }}{{ $s->nim ? ' / ' . $s->nim : '' }})</option>
-                                    @endforeach
-                                </select>
-                                @error('seller_id')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 2. Kategori (Category Select) --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kategori Barang <span class="text-red-500">*</span></label>
-                                <select name="category_id" x-model="formData.category_id"
-                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('category_id') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                    <option value="">— Pilih Kategori —</option>
-                                    @foreach($categories as $c)
-                                        <option value="{{ $c->id }}">#{{ $c->id }} - {{ $c->name }}</option>
-                                    @endforeach
-                                </select>
-                                @error('category_id')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 3. Nama Barang --}}
-                            <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Nama Barang <span class="text-red-500">*</span></label>
-                                <input type="text" name="name" x-model="formData.name" placeholder="Contoh: Modul Kuliah Algoritma & Pemrograman"
-                                       class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('name') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                @error('name')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 4. Harga Barang --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Harga Barang (Rp) <span class="text-red-500">*</span></label>
-                                <div class="relative">
-                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-semibold text-faint">Rp</span>
-                                    <input type="number" min="0" step="100" name="price" x-model="formData.price" placeholder="0"
-                                           class="w-full rounded-lg border bg-white py-2 pl-9 pr-3 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('price') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                </div>
-                                @error('price')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 5. Kondisi Barang --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kondisi Barang</label>
-                                <select name="condition" x-model="formData.condition"
-                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand border-line">
-                                    <option value="">— Pilih Kondisi —</option>
-                                    <option value="Baru (BNIB)">Baru (BNIB - Segel Pabrik)</option>
-                                    <option value="Baru">Baru (Buka Segel / Belum Dipakai)</option>
-                                    <option value="Bekas Layak">Bekas Layak Pakai</option>
-                                    <option value="Bekas">Bekas (Minus Ringan / Pemakaian)</option>
-                                </select>
-                            </div>
-
-                            {{-- 7. Status Barang --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Status Barang <span class="text-red-500">*</span></label>
-                                <select name="status" x-model="formData.status"
-                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('status') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                    <option value="available">Available (Tersedia)</option>
-                                    <option value="sold">Sold (Terjual)</option>
-                                    <option value="hidden">Hidden (Disembunyikan)</option>
-                                    <option value="archived">Archived (Diarsipkan)</option>
-                                </select>
-                                @error('status')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 8. Status Verifikasi --}}
-                            <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Status Verifikasi <span class="text-red-500">*</span></label>
-                                <select name="verification_status" x-model="formData.verification_status"
-                                        class="w-full rounded-lg border bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand @error('verification_status') border-red-500 bg-red-50/20 @else border-line @enderror">
-                                    <option value="verified">Verified (Terverifikasi & Langsung Tayang)</option>
-                                    <option value="pending">Pending (Menunggu Verifikasi)</option>
-                                    <option value="rejected">Rejected (Ditolak)</option>
-                                </select>
-                                @error('verification_status')
-                                    <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            {{-- 9. Foto Barang --}}
-                            <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Foto Barang</label>
-                                <div class="flex items-center gap-3">
-                                    <div class="h-16 w-16 rounded-xl border-2 border-line bg-gray-50 flex items-center justify-center overflow-hidden shrink-0 shadow-sm relative">
-                                        <template x-if="photoPreview || formData.photo_url">
-                                            <img :src="photoPreview || formData.photo_url" class="h-full w-full object-cover" alt="Preview">
-                                        </template>
-                                        <template x-if="!photoPreview && !formData.photo_url">
-                                            <svg class="h-6 w-6 text-faint" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909m-18 3.75h16.5a1.5 1.5 0 001.5-1.5V6a1.5 1.5 0 00-1.5-1.5H3.75A1.5 1.5 0 002.25 6v12a1.5 1.5 0 001.5 1.5zm10.5-11.25h.008v.008h-.008V8.25zm.375 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
-                                        </template>
-                                    </div>
-                                    <div class="flex-1 min-w-0">
-                                        <input type="file" name="photo" accept="image/*" @change="previewPhoto($event)"
-                                               class="block w-full text-xs text-muted file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-soft file:text-brand hover:file:bg-green-100 cursor-pointer border border-line rounded-lg p-1.5 bg-white">
-                                        <span class="text-[11px] text-faint mt-1 block">JPG, PNG, WEBP, SVG (Maksimal 5MB)</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {{-- 10. Deskripsi --}}
-                            <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Deskripsi Lengkap</label>
-                                <textarea name="description" x-model="formData.description" rows="3" placeholder="Jelaskan detail barang..." class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"></textarea>
-                            </div>
-
-                            {{-- 11. Spesifikasi --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Spesifikasi (Opsional)</label>
-                                <textarea name="specification" x-model="formData.specification" rows="2" placeholder="Contoh: RAM 8GB, SSD 256GB..." class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand"></textarea>
-                            </div>
-
-                            {{-- 12. Kelengkapan --}}
-                            <div>
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Kelengkapan (Opsional)</label>
-                                <input type="text" name="completeness" x-model="formData.completeness" placeholder="Contoh: Dus, Charger, Unit" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
-                            </div>
-
-                            {{-- 13. Alasan Dijual --}}
-                            <div class="sm:col-span-2">
-                                <label class="mb-1.5 block text-xs font-semibold text-ink">Alasan Dijual (Opsional)</label>
-                                <input type="text" name="sell_reason" x-model="formData.sell_reason" placeholder="Contoh: Sudah lulus / tidak terpakai lagi" class="w-full rounded-lg border border-line bg-white px-3 py-2 text-sm focus:border-brand focus:ring-1 focus:ring-brand">
-                            </div>
-                        </div>
-                    </div>
-
-                    {{-- Modal Footer --}}
-                    <div class="flex justify-end gap-2 border-t border-line px-6 py-3.5 bg-gray-50/80 rounded-b-2xl shrink-0">
-                        <button type="button" @click="closeModal()" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted hover:bg-gray-200 transition-colors">Batal</button>
-                        <button type="submit" class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-green-700 transition-colors" x-text="isEdit ? 'Simpan Perubahan' : 'Tambah Barang'"></button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    {{-- Modal Konfirmasi Hapus --}}
-    <div x-show="showDeleteModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
-        <div class="flex min-h-screen items-center justify-center p-4">
-            <div x-show="showDeleteModal" @click="showDeleteModal = false" class="fixed inset-0 bg-black/50 transition-opacity"></div>
-            <div x-show="showDeleteModal" x-transition class="relative z-10 w-full max-w-md rounded-2xl bg-white p-6 shadow-2xl">
-                <div class="flex flex-col items-center text-center">
-                    <div class="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-red-100">
-                        <svg class="h-7 w-7 text-red-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    </div>
-                    <h3 class="text-lg font-bold text-ink">Hapus Barang?</h3>
-                    <p class="mt-2 text-sm text-muted">
-                        Anda akan menghapus barang <strong x-text="deleteLabel" class="text-ink"></strong>.
-                        Tindakan ini tidak dapat dibatalkan.
-                    </p>
-                </div>
-                <form :action="deleteAction" method="POST" class="mt-6 flex justify-center gap-3">
-                    @csrf
-                    @method('DELETE')
-                    <button type="button" @click="showDeleteModal = false" class="rounded-lg bg-gray-100 px-5 py-2 text-sm font-medium text-muted hover:bg-gray-200">Batal</button>
-                    <button type="submit" class="rounded-lg bg-red-600 px-5 py-2 text-sm font-medium text-white shadow-sm hover:bg-red-700">Ya, Hapus</button>
-                </form>
-            </div>
-        </div>
-    </div>
-    @endif
 
     {{-- ═══════════ Modal Detail Barang (preview foto + informasi lengkap) ═══════════ --}}
     <div x-show="showDetailModal" x-cloak class="fixed inset-0 z-50 overflow-y-auto">
@@ -548,12 +307,6 @@
                 {{-- Footer --}}
                 <div class="flex shrink-0 justify-end gap-2 border-t border-line bg-gray-50/80 px-6 py-3.5">
                     <button type="button" @click="closeDetail()" class="rounded-lg bg-gray-100 px-4 py-2 text-sm font-medium text-muted transition-colors hover:bg-gray-200">Tutup</button>
-                    @if(!empty($isMaintenance))
-                    <button type="button" @click="closeDetail(); openEdit(detail.id)"
-                            class="rounded-lg bg-brand px-5 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-green-700">
-                        Ubah Barang
-                    </button>
-                    @endif
                 </div>
             </div>
         </div>

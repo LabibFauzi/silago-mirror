@@ -7,7 +7,6 @@ use App\Models\MarketplaceDeal;
 use App\Models\Report;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
-use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -17,8 +16,7 @@ class TransactionController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly NotificationService $notificationService,
-        private readonly SettingService $settingService
+        private readonly NotificationService $notificationService
     ) {}
 
     public function index(Request $request): View
@@ -48,12 +46,10 @@ class TransactionController extends Controller
                 });
             })
             ->latest()
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
-        $isMaintenance = $this->settingService->getBool('maintenance_mode', false);
-
-        return view('admin.transactions.index', compact('deals', 'status', 'isMaintenance'));
+        return view('admin.transactions.index', compact('deals', 'status'));
     }
 
     public function show(Request $request, MarketplaceDeal $deal): View
@@ -138,23 +134,19 @@ class TransactionController extends Controller
     }
 
     /**
-     * Hapus transaksi saat mode maintenance aktif.
+     * Hapus transaksi.
      */
     public function destroy(MarketplaceDeal $deal): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Penghapusan transaksi hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         try {
             DB::transaction(function () use ($deal) {
                 $dealId = $deal->id;
                 $deal->delete();
                 $this->auditLogService->log(
                     'marketplace_deal',
-                    'Hapus Transaksi (Maintenance)',
+                    'Hapus Transaksi',
                     "Transaksi #{$dealId}",
-                    'Penghapusan transaksi saat mode maintenance'
+                    'Penghapusan transaksi oleh admin'
                 );
             });
 

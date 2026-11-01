@@ -6,7 +6,6 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
-use App\Services\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -20,8 +19,7 @@ class UserController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly NotificationService $notificationService,
-        private readonly SettingService $settingService
+        private readonly NotificationService $notificationService
     ) {}
 
     public function index(Request $request): View
@@ -41,12 +39,10 @@ class UserController extends Controller
                 });
             })
             ->latest()
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
-        $isMaintenance = $this->settingService->getBool('maintenance_mode', false);
-
-        return view('admin.users.index', compact('users', 'status', 'isMaintenance'));
+        return view('admin.users.index', compact('users', 'status'));
     }
 
     public function show(User $user): View
@@ -72,14 +68,10 @@ class UserController extends Controller
     }
 
     /**
-     * Tambah pengguna baru saat mode maintenance aktif.
+     * Tambah pengguna baru.
      */
     public function store(Request $request): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Penambahan pengguna langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         $validated = $request->validate([
             'name'           => 'required|string|max:100',
             'email'          => 'required|email|unique:users,email',
@@ -111,9 +103,9 @@ class UserController extends Controller
 
                 $this->auditLogService->log(
                     'user',
-                    'Tambah Pengguna (Maintenance)',
+                    'Tambah Pengguna',
                     "Pengguna #{$user->id} ({$user->name})",
-                    'Penambahan pengguna saat mode maintenance'
+                    'Penambahan pengguna oleh admin'
                 );
             });
 
@@ -128,14 +120,10 @@ class UserController extends Controller
     }
 
     /**
-     * Ubah data pengguna saat mode maintenance aktif.
+     * Ubah data pengguna.
      */
     public function update(Request $request, User $user): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Perubahan pengguna langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         $validated = $request->validate([
             'name'           => 'required|string|max:100',
             'email'          => "required|email|unique:users,email,{$user->id}",
@@ -172,9 +160,9 @@ class UserController extends Controller
 
                 $this->auditLogService->log(
                     'user',
-                    'Ubah Pengguna (Maintenance)',
+                    'Ubah Pengguna',
                     "Pengguna #{$user->id} ({$user->name})",
-                    'Perubahan pengguna saat mode maintenance'
+                    'Perubahan pengguna oleh admin'
                 );
             });
 
@@ -189,14 +177,10 @@ class UserController extends Controller
     }
 
     /**
-     * Hapus pengguna saat mode maintenance aktif.
+     * Hapus pengguna.
      */
     public function destroy(User $user): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Penghapusan pengguna langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         if ($user->id === auth()->id()) {
             return back()->with('error', 'Anda tidak dapat menghapus akun Anda sendiri.');
         }
@@ -215,9 +199,9 @@ class UserController extends Controller
 
                 $this->auditLogService->log(
                     'user',
-                    'Hapus Pengguna (Maintenance)',
+                    'Hapus Pengguna',
                     "Pengguna #{$id} ({$name})",
-                    'Penghapusan pengguna saat mode maintenance'
+                    'Penghapusan pengguna oleh admin'
                 );
             });
 

@@ -10,7 +10,6 @@ use App\Models\User;
 use App\Services\AuditLogService;
 use App\Services\NotificationService;
 use App\Services\ProductLifecycleService;
-use App\Services\SettingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
@@ -23,7 +22,6 @@ class StockController extends Controller
 {
     public function __construct(
         private readonly AuditLogService $auditLogService,
-        private readonly SettingService $settingService,
         private readonly ProductLifecycleService $productLifecycle,
         private readonly NotificationService $notificationService,
     ) {}
@@ -61,16 +59,15 @@ class StockController extends Controller
                 });
             })
             ->latest('id')
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
-        $isMaintenance = $this->settingService->getBool('maintenance_mode', false);
         $sellers = User::orderBy('name')->get(['id', 'name', 'email', 'nim']);
         $categories = Category::orderBy('name')->get(['id', 'name']);
 
         return view('admin.stock.index', compact(
             'products', 'allCount', 'availableCount', 'outCount', 'filter',
-            'isMaintenance', 'sellers', 'categories'
+            'sellers', 'categories'
         ));
     }
 
@@ -103,14 +100,10 @@ class StockController extends Controller
     }
 
     /**
-     * Tambah barang baru langsung saat mode maintenance aktif.
+     * Tambah barang baru.
      */
     public function store(Request $request): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Penambahan barang langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         $rules = [
             'seller_id'           => 'required|exists:users,id',
             'category_id'         => 'required|exists:categories,id',
@@ -164,7 +157,7 @@ class StockController extends Controller
                     'stock',
                     'Tambah Barang (Maintenance)',
                     "Barang #{$product->id} ({$product->name})",
-                    'Penambahan barang langsung saat maintenance mode'
+                    'Penambahan barang oleh admin'
                 );
             });
 
@@ -179,14 +172,10 @@ class StockController extends Controller
     }
 
     /**
-     * Ubah data barang saat mode maintenance aktif.
+     * Ubah data barang.
      */
     public function update(Request $request, Product $product): RedirectResponse
     {
-        if (! $this->settingService->getBool('maintenance_mode', false)) {
-            return back()->with('error', 'Perubahan barang langsung hanya dapat dilakukan saat Mode Maintenance aktif.');
-        }
-
         $rules = [
             'seller_id'           => 'required|exists:users,id',
             'category_id'         => 'required|exists:categories,id',
@@ -244,7 +233,7 @@ class StockController extends Controller
                     'stock',
                     'Ubah Barang (Maintenance)',
                     "Barang #{$product->id} ({$product->name})",
-                    'Perubahan barang langsung saat maintenance mode'
+                    'Perubahan barang oleh admin'
                 );
             });
 
@@ -259,7 +248,7 @@ class StockController extends Controller
     }
 
     /**
-     * Hapus barang saat mode maintenance aktif.
+     * Hapus barang.
      */
     public function destroy(Product $product): RedirectResponse
     {

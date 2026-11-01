@@ -33,9 +33,7 @@ use Illuminate\Http\JsonResponse;
 /**
  * Data Manager — CRUD langsung ke semua tabel.
  *
- * HANYA tersedia saat:
- * 1. Mode Maintenance aktif (middleware: maintenance.active)
- * 2. User adalah admin (middleware: admin.only)
+ * HANYA tersedia untuk user dengan role admin (middleware: admin.only).
  *
  * Semua aksi dicatat di audit log.
  */
@@ -530,7 +528,7 @@ class DataManagerController extends Controller
             $query->orderBy($pk, 'desc');
         }
 
-        $records = $query->paginate(20)->withQueryString();
+        $records = $query->paginate(10)->withQueryString();
 
         // Ambil daftar kolom dari DB schema untuk form (semua kolom)
         $allColumns = Schema::getColumnListing((new $modelClass)->getTable());
@@ -652,7 +650,7 @@ class DataManagerController extends Controller
                     'data_manager',
                     "Tambah data ke {$table}",
                     $this->getRecordIdentifier($record, $config),
-                    'Mode maintenance — Data Manager',
+                    'Data Manager oleh admin',
                     ['data' => $this->sanitizeForLog($data)]
                 );
             });
@@ -762,7 +760,7 @@ class DataManagerController extends Controller
                     'data_manager',
                     "Ubah data di {$table}",
                     $this->getRecordIdentifier($record, $config),
-                    'Mode maintenance — Data Manager',
+                    'Data Manager oleh admin',
                     ['old' => $this->sanitizeForLog($old), 'new' => $this->sanitizeForLog($data)]
                 );
             });
@@ -984,7 +982,7 @@ class DataManagerController extends Controller
                     'data_manager',
                     "Hapus data dari {$table}",
                     $this->getRecordIdentifier($record, $config),
-                    'Mode maintenance — Data Manager',
+                    'Data Manager oleh admin',
                     ['deleted' => $this->sanitizeForLog($snapshot)]
                 );
             });

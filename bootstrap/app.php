@@ -2,9 +2,7 @@
 
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAdminOnly;
-use App\Http\Middleware\EnsureMaintenanceActive;
 use App\Http\Middleware\EnsureUserActive;
-use App\Http\Middleware\MaintenanceMode;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,11 +16,9 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
-            'user.active'        => EnsureUserActive::class,
-            'maintenance'        => MaintenanceMode::class,
-            'admin'              => EnsureAdmin::class,
-            'admin.only'         => EnsureAdminOnly::class,
-            'maintenance.active' => EnsureMaintenanceActive::class,
+            'user.active' => EnsureUserActive::class,
+            'admin'       => EnsureAdmin::class,
+            'admin.only'  => EnsureAdminOnly::class,
         ]);
         $middleware->trustProxies(at: '*');
 

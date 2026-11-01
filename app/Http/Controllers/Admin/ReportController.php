@@ -33,7 +33,7 @@ class ReportController extends Controller
                 });
             })
             ->latest()
-            ->paginate(15)
+            ->paginate(10)
             ->withQueryString();
 
         return view('admin.reports.index', compact('reports', 'status'));
