@@ -16,7 +16,9 @@ class StoreMessageRequest extends FormRequest
         return [
             'type' => ['required', 'string', 'in:text,location,image'],
             'message' => ['nullable', 'string', 'max:5000'],
-            'image' => ['required_if:type,image', 'image', 'max:10240'],
+            // Batasi gambar chat ke 2 MB agar ringan (sama dengan foto produk
+            // & foto profil).
+            'image' => ['required_if:type,image', 'image', 'max:2048'],
             'caption' => ['nullable', 'string', 'max:500'],
             'location_lat' => ['required_if:type,location', 'numeric'],
             'location_lng' => ['required_if:type,location', 'numeric'],

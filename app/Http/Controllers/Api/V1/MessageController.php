@@ -29,16 +29,33 @@ class MessageController extends Controller
         }
 
         $query = $conversation->messages();
+        $limit = (int) $request->input('limit', 30);
 
         if ($request->filled('after_id')) {
-            $query->where('id', '>', $request->after_id);
+            // Polling: pesan baru setelah id terakhir, urut naik.
+            $messages = $query->with('replyTo')
+                ->where('id', '>', $request->after_id)
+                ->orderBy('created_at', 'asc')
+                ->limit($limit)
+                ->get();
+        } elseif ($request->filled('before_id')) {
+            // Muat riwayat lama: ambil N pesan terdekat sebelum id, urut naik.
+            $messages = $query->with('replyTo')
+                ->where('id', '<', $request->before_id)
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
+        } else {
+            // Muat awal: N pesan terbaru, lalu urutkan naik.
+            $messages = $query->with('replyTo')
+                ->orderBy('created_at', 'desc')
+                ->limit($limit)
+                ->get()
+                ->reverse()
+                ->values();
         }
-
-        $limit = $request->input('limit', 30);
-        $messages = $query->with('replyTo')
-            ->orderBy('created_at', 'asc')
-            ->limit($limit)
-            ->get();
 
         return MessageResource::collection($messages);
     }
