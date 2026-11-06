@@ -1,0 +1,451 @@
+{
+  "info": {
+    "name": "SILAGO API",
+    "description": "Marketplace kampus Polines — Laravel 12 + Sanctum. Base prefix /api/v1. Import lalu set baseUrl & token. OpenAPI: ../openapi.yaml, Markdown: ./API.md",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:8000/api/v1", "type": "string" },
+    { "key": "token", "value": "", "type": "string" }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "exec": [""],
+        "type": "text/javascript"
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Config",
+      "item": [
+        {
+          "name": "GET app-config",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/app-config", "host": ["{{baseUrl}}"], "path": ["app-config"] },
+            "description": "Publik. max_photos, maintenance_mode, listing_active_days, dll."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "POST register",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/register", "host": ["{{baseUrl}}"], "path": ["auth", "register"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Budi Santoso\",\n  \"nim\": \"3.34.25.1.14\",\n  \"email\": \"budi@polines.ac.id\",\n  \"password\": \"password123\",\n  \"password_confirmation\": \"password123\"\n}"
+            },
+            "description": "name max100, nim regex ^[0-9.]+$ unique, email unique+domain whitelist, password min8 confirmed. 201 + UserResource"
+          }
+        },
+        {
+          "name": "POST verify-email",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/verify-email", "host": ["{{baseUrl}}"], "path": ["auth", "verify-email"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"budi@polines.ac.id\",\n  \"code\": \"123456\"\n}" },
+            "description": "Cache 15 menit. 400 jika tidak valid."
+          }
+        },
+        {
+          "name": "POST resend-verification (1/60s)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/resend-verification", "host": ["{{baseUrl}}"], "path": ["auth", "resend-verification"] },
+            "body": { "mode": "raw", "raw": "{\n  \"email\": \"budi@polines.ac.id\"\n}" }
+          }
+        },
+        {
+          "name": "POST login (bypass maintenance)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  const j = pm.response.json();",
+                  "  if (j.token) pm.collectionVariables.set('token', j.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/auth/login", "host": ["{{baseUrl}}"], "path": ["auth", "login"] },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"login\": \"budi@polines.ac.id\",\n  \"password\": \"password123\",\n  \"fcm_token\": \"optional-fcm-token\"\n}"
+            },
+            "description": "login = email|nim|username (auto-filled). Rate 5/min per IP. 200 {token, user}. Test script auto-set {{token}}."
+          }
+        },
+        {
+          "name": "POST logout",
+          "request": {
+            "method": "POST",
+            "auth": { "type": "bearer", "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }] },
+            "url": { "raw": "{{baseUrl}}/auth/logout", "host": ["{{baseUrl}}"], "path": ["auth", "logout"] },
+            "description": "Hapus currentAccessToken"
+          }
+        },
+        {
+          "name": "POST forgot-password (501)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth/forgot-password", "host": ["{{baseUrl}}"], "path": ["auth", "forgot-password"] }
+          }
+        },
+        {
+          "name": "POST reset-password (501)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/auth/reset-password", "host": ["{{baseUrl}}"], "path": ["auth", "reset-password"] }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile",
+      "item": [
+        {
+          "name": "GET me",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] } }
+        },
+        {
+          "name": "PUT me (multipart)",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{baseUrl}}/me", "host": ["{{baseUrl}}"], "path": ["me"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Budi S", "type": "text" },
+                { "key": "phone", "value": "08123456789", "type": "text" },
+                { "key": "profile_photo", "type": "file", "src": [] }
+              ]
+            },
+            "description": "name sometimes max100, phone max30, profile_photo image jpg/jpeg/png/webp 2MB"
+          }
+        },
+        {
+          "name": "POST me/fcm-token",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/me/fcm-token", "host": ["{{baseUrl}}"], "path": ["me", "fcm-token"] },
+            "body": { "mode": "raw", "raw": "{\n  \"fcm_token\": \"fcm-token-string\"\n}" }
+          }
+        },
+        {
+          "name": "GET me/summary",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me/summary", "host": ["{{baseUrl}}"], "path": ["me", "summary"] } }
+        },
+        {
+          "name": "GET me/products",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/me/products?status=available&verification_status=verified&page=1", "host": ["{{baseUrl}}"], "path": ["me", "products"], "query": [{ "key": "status", "value": "available" }, { "key": "verification_status", "value": "verified" }, { "key": "page", "value": "1" }] }
+          }
+        },
+        {
+          "name": "GET me/favorites",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/me/favorites?page=1", "host": ["{{baseUrl}}"], "path": ["me", "favorites"], "query": [{ "key": "page", "value": "1" }] } }
+        }
+      ]
+    },
+    {
+      "name": "Catalog",
+      "item": [
+        {
+          "name": "GET categories",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/categories", "host": ["{{baseUrl}}"], "path": ["categories"] } }
+        },
+        {
+          "name": "GET cod-points",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/cod-points", "host": ["{{baseUrl}}"], "path": ["cod-points"] } }
+        }
+      ]
+    },
+    {
+      "name": "Products",
+      "item": [
+        {
+          "name": "GET products (filtered)",
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{baseUrl}}/products?category_id=1&search=laptop&sort=newest&page=1", "host": ["{{baseUrl}}"], "path": ["products"], "query": [{ "key": "category_id", "value": "1" }, { "key": "search", "value": "laptop" }, { "key": "sort", "value": "newest" }, { "key": "page", "value": "1" }] },
+            "description": "sort newest|price_asc|price_desc. Scope available+verified+not expired."
+          }
+        },
+        {
+          "name": "POST products (multipart)",
+          "request": {
+            "method": "POST",
+            "url": { "raw": "{{baseUrl}}/products", "host": ["{{baseUrl}}"], "path": ["products"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Laptop ThinkPad", "type": "text" },
+                { "key": "description", "value": "Mulus", "type": "text" },
+                { "key": "condition", "value": "Bekas Layak", "type": "text" },
+                { "key": "specification", "value": "i5 8GB", "type": "text" },
+                { "key": "completeness", "value": "Lengkap box", "type": "text" },
+                { "key": "sell_reason", "value": "BU", "type": "text" },
+                { "key": "price", "value": "3500000", "type": "text" },
+                { "key": "stock", "value": "2", "type": "text" },
+                { "key": "category_id", "value": "1", "type": "text" },
+                { "key": "photos[]", "type": "file", "src": [] }
+              ]
+            },
+            "description": "photos 1..max_photos (default 5) jpg/jpeg/png/webp 1MB"
+          }
+        },
+        {
+          "name": "GET products/{id}",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/products/1", "host": ["{{baseUrl}}"], "path": ["products", "1"] } }
+        },
+        {
+          "name": "PUT products/{id} (multipart)",
+          "request": {
+            "method": "PUT",
+            "url": { "raw": "{{baseUrl}}/products/1", "host": ["{{baseUrl}}"], "path": ["products", "1"] },
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "name", "value": "Laptop ThinkPad Updated", "type": "text" },
+                { "key": "price", "value": "3400000", "type": "text" }
+              ]
+            },
+            "description": "Owner only, 409 jika ada deal agreed"
+          }
+        },
+        {
+          "name": "DELETE products/{id}",
+          "request": { "method": "DELETE", "url": { "raw": "{{baseUrl}}/products/1", "host": ["{{baseUrl}}"], "path": ["products", "1"] } }
+        },
+        {
+          "name": "POST products/{id}/renew",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/products/1/renew", "host": ["{{baseUrl}}"], "path": ["products", "1", "renew"] }, "description": "Hanya status=archived" }
+        },
+        {
+          "name": "POST products/{id}/favorite (toggle)",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/products/1/favorite", "host": ["{{baseUrl}}"], "path": ["products", "1", "favorite"] } }
+        },
+        {
+          "name": "POST products/{id}/report",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/products/1/report", "host": ["{{baseUrl}}"], "path": ["products", "1", "report"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Spam chat\",\n  \"description\": \"Deskripsi laporan\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Conversations",
+      "item": [
+        {
+          "name": "GET conversations",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/conversations?q=laptop&page=1", "host": ["{{baseUrl}}"], "path": ["conversations"], "query": [{ "key": "q", "value": "laptop" }, { "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "POST products/{id}/conversations",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/products/1/conversations", "host": ["{{baseUrl}}"], "path": ["products", "1", "conversations"] }, "description": "firstOrCreate, 403 jika milik sendiri atau belum verified" }
+        },
+        {
+          "name": "GET conversations/{id}",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/conversations/1", "host": ["{{baseUrl}}"], "path": ["conversations", "1"] } }
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "item": [
+        {
+          "name": "GET conversations/{id}/messages",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/conversations/1/messages?limit=30&after_id=0", "host": ["{{baseUrl}}"], "path": ["conversations", "1", "messages"], "query": [{ "key": "limit", "value": "30" }, { "key": "after_id", "value": "0" }] } }
+        },
+        {
+          "name": "POST conversations/{id}/messages (text)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/conversations/1/messages", "host": ["{{baseUrl}}"], "path": ["conversations", "1", "messages"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"text\",\n  \"message\": \"Halo, masih ada?\"\n}" }
+          }
+        },
+        {
+          "name": "POST conversations/{id}/messages (location)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/conversations/1/messages", "host": ["{{baseUrl}}"], "path": ["conversations", "1", "messages"] },
+            "body": { "mode": "raw", "raw": "{\n  \"type\": \"location\",\n  \"location_lat\": -6.97,\n  \"location_lng\": 110.42,\n  \"location_name\": \"Polines\",\n  \"location_address\": \"Jl. Prof Sudarto\",\n  \"location_accuracy\": 10\n}" }
+          }
+        },
+        {
+          "name": "POST conversations/{id}/read",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/conversations/1/read", "host": ["{{baseUrl}}"], "path": ["conversations", "1", "read"] } }
+        }
+      ]
+    },
+    {
+      "name": "Offers",
+      "item": [
+        {
+          "name": "POST conversations/{id}/offers",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/conversations/1/offers", "host": ["{{baseUrl}}"], "path": ["conversations", "1", "offers"] },
+            "body": { "mode": "raw", "raw": "{\n  \"price\": 3000000,\n  \"note\": \"Nego tipis\",\n  \"parent_offer_id\": null\n}" },
+            "description": "price 1..product.price, single pending per conversation"
+          }
+        },
+        {
+          "name": "POST offers/{message}/accept",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/offers/1/accept", "host": ["{{baseUrl}}"], "path": ["offers", "1", "accept"] },
+            "body": { "mode": "raw", "raw": "{\n  \"quantity\": 1\n}" },
+            "description": "Recipient only, buat deal agreed"
+          }
+        },
+        {
+          "name": "POST offers/{message}/reject",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/offers/1/reject", "host": ["{{baseUrl}}"], "path": ["offers", "1", "reject"] } }
+        }
+      ]
+    },
+    {
+      "name": "Deals",
+      "item": [
+        {
+          "name": "GET deals",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/deals?status=agreed&page=1", "host": ["{{baseUrl}}"], "path": ["deals"], "query": [{ "key": "status", "value": "agreed" }, { "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "GET deals/{id}",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/deals/1", "host": ["{{baseUrl}}"], "path": ["deals", "1"] } }
+        },
+        {
+          "name": "POST deals/{id}/qr (seller)",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/deals/1/qr", "host": ["{{baseUrl}}"], "path": ["deals", "1", "qr"] }, "description": "10 menit, sha256" }
+        },
+        {
+          "name": "POST deals/{id}/complete (buyer token)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/deals/1/complete", "host": ["{{baseUrl}}"], "path": ["deals", "1", "complete"] },
+            "body": { "mode": "raw", "raw": "{\n  \"token\": \"64char-token-from-qr\",\n  \"lat\": -6.97,\n  \"lng\": 110.42\n}" }
+          }
+        },
+        {
+          "name": "POST deals/{id}/complete (buyer code)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/deals/1/complete", "host": ["{{baseUrl}}"], "path": ["deals", "1", "complete"] },
+            "body": { "mode": "raw", "raw": "{\n  \"code\": \"123456\",\n  \"lat\": -6.97,\n  \"lng\": 110.42\n}" },
+            "description": "XOR token/code, 5 gagal lock 15min"
+          }
+        },
+        {
+          "name": "POST deals/{id}/cancel",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/deals/1/cancel", "host": ["{{baseUrl}}"], "path": ["deals", "1", "cancel"] },
+            "body": { "mode": "raw", "raw": "{\n  \"note\": \"Jadwal bentrok\"\n}" }
+          }
+        },
+        {
+          "name": "POST deals/{id}/review",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/deals/1/review", "host": ["{{baseUrl}}"], "path": ["deals", "1", "review"] },
+            "body": { "mode": "raw", "raw": "{\n  \"rating\": 5,\n  \"comment\": \"Mantap\"\n}" }
+          }
+        },
+        {
+          "name": "POST deals/{id}/report",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/deals/1/report", "host": ["{{baseUrl}}"], "path": ["deals", "1", "report"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Sengketa transaksi\",\n  \"description\": \"Barang tidak sesuai\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Users",
+      "item": [
+        {
+          "name": "GET users/{id}",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/1", "host": ["{{baseUrl}}"], "path": ["users", "1"] } }
+        },
+        {
+          "name": "GET users/{id}/reviews",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/1/reviews?page=1", "host": ["{{baseUrl}}"], "path": ["users", "1", "reviews"], "query": [{ "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "GET users/{id}/products",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/users/1/products?page=1", "host": ["{{baseUrl}}"], "path": ["users", "1", "products"], "query": [{ "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "POST users/{id}/report",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{baseUrl}}/users/1/report", "host": ["{{baseUrl}}"], "path": ["users", "1", "report"] },
+            "body": { "mode": "raw", "raw": "{\n  \"reason\": \"Perilaku pengguna\",\n  \"description\": \"...\"\n}" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "GET notifications",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/notifications?page=1", "host": ["{{baseUrl}}"], "path": ["notifications"], "query": [{ "key": "page", "value": "1" }] } }
+        },
+        {
+          "name": "GET notifications/unread-count",
+          "request": { "method": "GET", "url": { "raw": "{{baseUrl}}/notifications/unread-count", "host": ["{{baseUrl}}"], "path": ["notifications", "unread-count"] } }
+        },
+        {
+          "name": "POST notifications/{id}/read",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/notifications/1/read", "host": ["{{baseUrl}}"], "path": ["notifications", "1", "read"] } }
+        },
+        {
+          "name": "POST notifications/read-all",
+          "request": { "method": "POST", "url": { "raw": "{{baseUrl}}/notifications/read-all", "host": ["{{baseUrl}}"], "path": ["notifications", "read-all"] } }
+        }
+      ]
+    }
+  ]
+}

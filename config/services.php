@@ -35,4 +35,20 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URL'),
+        'guzzle' => [
+            'verify' => false,
+        ],
+    ],
+
+    'otp' => [
+        'length' => env('OTP_LENGTH', 6),
+        'expiry_minutes' => env('OTP_EXPIRY_MINUTES', 15),
+    ],
+
+    'polines_email_domain' => env('POLINES_EMAIL_DOMAIN', 'polines.ac.id'),
+
 ];
