@@ -1,0 +1,1230 @@
+openapi: 3.1.0
+info:
+  title: SILAGO API
+  description: |
+    Marketplace kampus Polines. Base prefix `/api/v1`. Auth via Laravel Sanctum Bearer token.
+    Pagination default 15 (20 untuk conversations/notifications). Locale `id` (Carbon `id`).
+    Storage URL via `Storage::url()` (`/storage/...`).
+  version: 1.0.0
+  contact:
+    name: SILAGO
+servers:
+  - url: http://localhost:8000/api/v1
+    description: Local
+  - url: https://silago.example.com/api/v1
+    description: Production (ganti host)
+security:
+  - bearerAuth: []
+tags:
+  - name: Config
+    description: App config publik
+  - name: Auth
+    description: Registrasi, verifikasi, login/logout
+  - name: Profile
+    description: Profil sendiri + summary + fcm-token
+  - name: Catalog
+    description: Categories & COD points
+  - name: Products
+    description: CRUD produk + favorite + report + renew
+  - name: Conversations
+    description: Chat per produk
+  - name: Messages
+    description: Pesan text/location
+  - name: Offers
+    description: Penawaran harga & accept/reject
+  - name: Deals
+    description: Transaksi (QR, complete, cancel)
+  - name: Reviews
+    description: Ulasan deal
+  - name: Reports
+    description: Laporan produk/user/deal
+  - name: Users
+    description: Profil publik & ulasan
+  - name: Notifications
+    description: Notifikasi in-app
+  - name: Favorites
+    description: Favorit user
+
+paths:
+  # ── Config ──
+  /app-config:
+    get:
+      tags: [Config]
+      summary: App config
+      security: []
+      operationId: getAppConfig
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  max_photos: { type: integer, example: 5 }
+                  maintenance_mode: { type: boolean }
+                  listing_active_days: { type: integer, example: 30 }
+                  low_stock_threshold: { type: integer, example: 3 }
+                  report_reasons:
+                    type: array
+                    items: { type: string }
+                    example: [Penipuan, Barang terlarang, Sengketa transaksi, Perilaku pengguna, Foto tidak sesuai, Spam chat, Lainnya]
+                  allowed_email_domains: { type: string, example: "@polines.ac.id\n@students.polines.ac.id" }
+
+  # ── Auth ──
+  /auth/register:
+    post:
+      tags: [Auth]
+      summary: Register
+      security: []
+      operationId: register
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [name, nim, email, password, password_confirmation]
+              properties:
+                name: { type: string, maxLength: 100, example: "Budi Santoso" }
+                nim: { type: string, maxLength: 20, pattern: "^[0-9.]+$", example: "3.34.25.1.14" }
+                email: { type: string, format: email, example: "budi@polines.ac.id" }
+                password: { type: string, minLength: 8, example: "password123" }
+                password_confirmation: { type: string, example: "password123" }
+      responses:
+        '201':
+          description: Created - cek email untuk kode verifikasi
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Registrasi berhasil. Silakan cek email untuk kode verifikasi." }
+                  user: { $ref: "#/components/schemas/UserResource" }
+        '422': { $ref: "#/components/responses/ValidationError" }
+
+  /auth/verify-email:
+    post:
+      tags: [Auth]
+      summary: Verify email dengan kode 6 digit
+      security: []
+      operationId: verifyEmail
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, code]
+              properties:
+                email: { type: string, format: email }
+                code: { type: string, example: "123456" }
+      responses:
+        '200':
+          description: Verified
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Email berhasil diverifikasi" }
+                  user: { $ref: "#/components/schemas/UserResource" }
+        '400':
+          description: Kode tidak valid / kedaluwarsa (cache 15 menit)
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Error" }
+
+  /auth/resend-verification:
+    post:
+      tags: [Auth]
+      summary: Kirim ulang kode verifikasi (rate limit 1/60s)
+      security: []
+      operationId: resendVerification
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email]
+              properties:
+                email: { type: string, format: email }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Kode verifikasi telah dikirim ulang." } } } } } }
+        '400': { description: Sudah terverifikasi }
+        '429': { $ref: "#/components/responses/TooManyRequests" }
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login (email/nim/username + password). Bypass maintenance.
+      security: []
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [password]
+              properties:
+                login: { type: string, description: "email atau nim atau username", example: "budi@polines.ac.id" }
+                email: { type: string, format: email, description: "Alias untuk login" }
+                nim: { type: string, description: "Alias untuk login" }
+                username: { type: string, description: "Alias untuk login" }
+                password: { type: string, example: "password123" }
+                fcm_token: { type: string, nullable: true }
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: "Sanctum plainTextToken" }
+                  user: { $ref: "#/components/schemas/UserResource" }
+        '401': { description: Kredensial salah / akun suspended }
+        '429': { $ref: "#/components/responses/TooManyRequests" }
+      x-rate-limit: "5/min per IP (key login:{ip})"
+
+  /auth/logout:
+    post:
+      tags: [Auth]
+      summary: Logout (hapus currentAccessToken)
+      operationId: logout
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Logout berhasil" } } } } } }
+        '401': { $ref: "#/components/responses/Unauthorized" }
+
+  /auth/forgot-password:
+    post:
+      tags: [Auth]
+      summary: Forgot password (belum implement)
+      security: []
+      responses:
+        '501': { description: Not implemented, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Not implemented" } } } } } }
+
+  /auth/reset-password:
+    post:
+      tags: [Auth]
+      summary: Reset password (belum implement)
+      security: []
+      responses:
+        '501': { description: Not implemented, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Not implemented" } } } } } }
+
+  # ── Profile ──
+  /me:
+    get:
+      tags: [Profile]
+      summary: Profil sendiri
+      operationId: getMe
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/UserResource" } } } }
+        '401': { $ref: "#/components/responses/Unauthorized" }
+    put:
+      tags: [Profile]
+      summary: Update profil
+      operationId: updateMe
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 100 }
+                phone: { type: string, maxLength: 30, nullable: true }
+                profile_photo: { type: string, format: binary, description: "jpg/jpeg/png/webp max 2MB" }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/UserResource" } } } }
+        '422': { $ref: "#/components/responses/ValidationError" }
+
+  /me/fcm-token:
+    post:
+      tags: [Profile]
+      summary: Update FCM token
+      operationId: updateFcmToken
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [fcm_token]
+              properties:
+                fcm_token: { type: string }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "FCM Token updated" } } } } } }
+
+  /me/summary:
+    get:
+      tags: [Profile]
+      summary: Ringkasan statistik user
+      operationId: getSummary
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  avg_rating: { type: number, example: 4.5 }
+                  total_reviews: { type: integer }
+                  total_sold: { type: integer }
+                  total_bought: { type: integer }
+                  active_products: { type: integer }
+                  active_deals: { type: integer }
+                  total_favorites: { type: integer }
+
+  /me/products:
+    get:
+      tags: [Products]
+      summary: Produk milik sendiri (semua status)
+      operationId: getMyProducts
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: status
+          in: query
+          schema: { type: string, enum: [available, hidden, sold, archived] }
+        - name: verification_status
+          in: query
+          schema: { type: string, enum: [pending, verified, rejected] }
+      responses:
+        '200': { description: Paginated ProductListResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedProductList" } } } }
+
+  /me/favorites:
+    get:
+      tags: [Favorites]
+      summary: Daftar favorit
+      operationId: getFavorites
+      parameters:
+        - $ref: "#/components/parameters/Page"
+      responses:
+        '200': { description: Paginated ProductListResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedProductList" } } } }
+
+  # ── Catalog ──
+  /categories:
+    get:
+      tags: [Catalog]
+      summary: Daftar kategori
+      security: []
+      operationId: getCategories
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id: { type: integer }
+                    name: { type: string }
+                    slug: { type: string }
+                    icon: { type: string, nullable: true }
+                    products_count: { type: integer }
+
+  /cod-points:
+    get:
+      tags: [Catalog]
+      summary: Titik COD aktif
+      operationId: getCodPoints
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/CodPoint" }
+
+  # ── Products ──
+  /products:
+    get:
+      tags: [Products]
+      summary: Katalog produk (available+verified+not expired, seller != suspended)
+      operationId: listProducts
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: category_id
+          in: query
+          schema: { type: integer }
+        - name: search
+          in: query
+          schema: { type: string, description: "LIKE name/description" }
+        - name: sort
+          in: query
+          schema: { type: string, enum: [newest, price_asc, price_desc], default: newest }
+      responses:
+        '200': { description: Paginated ProductListResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedProductList" } } } }
+    post:
+      tags: [Products]
+      summary: Buat produk (multipart, verification pending, scan banned_words)
+      operationId: createProduct
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, condition, price, stock, category_id, photos]
+              properties:
+                name: { type: string, maxLength: 150 }
+                description: { type: string, nullable: true }
+                condition: { type: string, enum: [Baru (BNIB), Baru, Bekas Layak, Bekas] }
+                specification: { type: string, nullable: true }
+                completeness: { type: string, maxLength: 255, nullable: true }
+                sell_reason: { type: string, nullable: true }
+                price: { type: number, minimum: 1 }
+                stock: { type: integer, minimum: 1 }
+                category_id: { type: integer }
+                photos:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  items: { type: string, format: binary, description: "jpg/jpeg/png/webp max 1MB" }
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - { $ref: "#/components/schemas/ProductResource" }
+                  - type: object
+                    properties:
+                      message: { type: string, example: "Barang berhasil dikirim dan menunggu verifikasi" }
+        '422': { $ref: "#/components/responses/ValidationError" }
+
+  /products/{product}:
+    get:
+      tags: [Products]
+      summary: Detail produk (owner lihat semua, lainnya hanya available+verified+not expired)
+      operationId: getProduct
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/ProductResource" } } } }
+        '404': { $ref: "#/components/responses/NotFound" }
+    put:
+      tags: [Products]
+      summary: Update produk (owner only, 409 jika ada deal agreed, pending jika name/desc/photos berubah)
+      operationId: updateProduct
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string, maxLength: 150 }
+                description: { type: string, nullable: true }
+                condition: { type: string, enum: [Baru (BNIB), Baru, Bekas Layak, Bekas] }
+                specification: { type: string, nullable: true }
+                completeness: { type: string, maxLength: 255, nullable: true }
+                sell_reason: { type: string, nullable: true }
+                price: { type: number, minimum: 1 }
+                stock: { type: integer, minimum: 1 }
+                category_id: { type: integer }
+                photos:
+                  type: array
+                  minItems: 1
+                  maxItems: 5
+                  items: { type: string, format: binary, description: "jpg/jpeg/png/webp max 1MB" }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/ProductResource" } } } }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '409': { description: Ada deal agreed }
+        '422': { $ref: "#/components/responses/ValidationError" }
+    delete:
+      tags: [Products]
+      summary: Hapus produk (soft-hide status=hidden, hapus images dari storage)
+      operationId: deleteProduct
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Produk berhasil dihapus." } } } } } }
+        '403': { $ref: "#/components/responses/Forbidden" }
+        '409': { description: Ada deal agreed }
+
+  /products/{product}/renew:
+    post:
+      tags: [Products]
+      summary: Perpanjang masa tayang (hanya status=archived)
+      operationId: renewProduct
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message: { type: string, example: "Masa tayang produk berhasil diperbarui dan menunggu verifikasi." }
+                  data: { $ref: "#/components/schemas/ProductResource" }
+        '400': { description: Status bukan archived }
+        '403': { $ref: "#/components/responses/Forbidden" }
+
+  /products/{product}/favorite:
+    post:
+      tags: [Favorites]
+      summary: Toggle favorite
+      operationId: toggleFavorite
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { favorited: { type: boolean } } } } } }
+
+  /products/{product}/report:
+    post:
+      tags: [Reports]
+      summary: Laporkan produk
+      operationId: reportProduct
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StoreReportRequest" }
+      responses:
+        '201': { description: Created }
+        '403': { description: Tidak bisa lapor produk sendiri }
+
+  # ── Conversations ──
+  /conversations:
+    get:
+      tags: [Conversations]
+      summary: Daftar percakapan (buyer/seller, paginate 20, unread_count)
+      operationId: listConversations
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: q
+          in: query
+          schema: { type: string, description: "Cari nama produk" }
+      responses:
+        '200': { description: Paginated ConversationResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedConversation" } } } }
+
+  /products/{product}/conversations:
+    post:
+      tags: [Conversations]
+      summary: Buat/ambil percakapan untuk produk (bukan milik sendiri, verified+available)
+      operationId: createConversation
+      parameters:
+        - $ref: "#/components/parameters/ProductId"
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/ConversationResource" } } } }
+        '201': { description: Created }
+        '403': { description: Milik sendiri / belum verified }
+
+  /conversations/{conversation}:
+    get:
+      tags: [Conversations]
+      summary: Detail percakapan + last_offer + active_deal
+      operationId: getConversation
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      conversation: { $ref: "#/components/schemas/ConversationResource" }
+                      last_offer:
+                        nullable: true
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          offer_price: { type: number }
+                          offer_status: { type: string, enum: [pending, accepted, rejected, countered] }
+                      active_deal:
+                        nullable: true
+                        type: object
+                        properties:
+                          id: { type: integer }
+                          status: { type: string }
+        '403': { $ref: "#/components/responses/Forbidden" }
+
+  /conversations/{conversation}/messages:
+    get:
+      tags: [Messages]
+      summary: Daftar pesan (participant only, ?after_id & ?limit default 30)
+      operationId: listMessages
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+        - name: after_id
+          in: query
+          schema: { type: integer }
+        - name: limit
+          in: query
+          schema: { type: integer, default: 30 }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: array, items: { $ref: "#/components/schemas/MessageResource" } } } } }
+    post:
+      tags: [Messages]
+      summary: Kirim pesan text/location
+      operationId: sendMessage
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [type]
+              properties:
+                type: { type: string, enum: [text, location] }
+                message: { type: string, maxLength: 5000, description: "required_if type=text" }
+                location_lat: { type: number, description: "required_if type=location" }
+                location_lng: { type: number, description: "required_if type=location" }
+                location_name: { type: string, maxLength: 150, nullable: true }
+                location_address: { type: string, maxLength: 255, nullable: true }
+                location_accuracy: { type: integer, nullable: true }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/MessageResource" } } } }
+        '422': { $ref: "#/components/responses/ValidationError" }
+
+  /conversations/{conversation}/read:
+    post:
+      tags: [Messages]
+      summary: Tandai pesan sebagai dibaca (read_at=now where sender != me)
+      operationId: markRead
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Messages marked as read" } } } } } }
+
+  /conversations/{conversation}/offers:
+    post:
+      tags: [Offers]
+      summary: Buat penawaran (price 1..product.price, single pending per conversation)
+      operationId: createOffer
+      parameters:
+        - $ref: "#/components/parameters/ConversationId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [price]
+              properties:
+                price: { type: number, minimum: 1 }
+                note: { type: string, nullable: true }
+                parent_offer_id: { type: integer, nullable: true, description: "exists messages.id untuk counter" }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/MessageResource" } } } }
+        '400': { description: Harga tidak valid / ada pending }
+        '409': { description: Sudah ada penawaran pending }
+
+  /offers/{message}/accept:
+    post:
+      tags: [Offers]
+      summary: Terima penawaran (recipient only, kurangi stok, buat deal agreed)
+      operationId: acceptOffer
+      parameters:
+        - name: message
+          in: path
+          required: true
+          schema: { type: integer, description: "Message id bertipe offer" }
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                quantity: { type: integer, minimum: 1, default: 1 }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/DealResource" } } } }
+        '403': { description: Tidak bisa terima penawaran sendiri }
+        '409': { description: Sudah ada deal aktif / offer tidak pending }
+
+  /offers/{message}/reject:
+    post:
+      tags: [Offers]
+      summary: Tolak penawaran (recipient only)
+      operationId: rejectOffer
+      parameters:
+        - name: message
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Offer rejected" } } } } } }
+        '403': { description: Tidak bisa tolak penawaran sendiri }
+
+  # ── Deals ──
+  /deals:
+    get:
+      tags: [Deals]
+      summary: Daftar deal (buyer/seller, ?status, paginate 15)
+      operationId: listDeals
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - name: status
+          in: query
+          schema: { type: string, enum: [agreed, completed, cancelled] }
+      responses:
+        '200': { description: Paginated DealResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedDeal" } } } }
+
+  /deals/{deal}:
+    get:
+      tags: [Deals]
+      summary: Detail deal + actions (can_generate_qr, can_complete, can_cancel, can_review)
+      operationId: getDeal
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data: { $ref: "#/components/schemas/DealResource" }
+                  actions:
+                    type: object
+                    properties:
+                      can_generate_qr: { type: boolean }
+                      can_complete: { type: boolean }
+                      can_cancel: { type: boolean }
+                      can_review: { type: boolean }
+
+  /deals/{deal}/qr:
+    post:
+      tags: [Deals]
+      summary: Generate QR (seller+agreed, 10 menit, sha256 token+code)
+      operationId: generateQr
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string, description: "64 char" }
+                  code: { type: string, description: "6 digit" }
+                  expires_at: { type: string, format: date-time }
+                  qr_data: { type: string, example: "silago://deal/1/complete/<token>" }
+        '400': { description: Status bukan agreed }
+        '403': { description: Hanya penjual }
+
+  /deals/{deal}/complete:
+    post:
+      tags: [Deals]
+      summary: Selesaikan deal (buyer, token XOR code, lock 5 attempts -> 15min)
+      operationId: completeDeal
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                token: { type: string, description: "required_without code" }
+                code: { type: string, minLength: 6, maxLength: 6, description: "required_without token, size 6" }
+                lat: { type: number, nullable: true }
+                lng: { type: number, nullable: true }
+              anyOf:
+                - required: [token]
+                - required: [code]
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { $ref: "#/components/schemas/DealResource" } } } }
+        '403': { description: Hanya pembeli }
+        '422': { description: Token/code salah atau kedaluwarsa }
+        '423': { description: Terkunci 15 menit setelah 5 gagal }
+
+  /deals/{deal}/cancel:
+    post:
+      tags: [Deals]
+      summary: Batalkan deal (buyer/seller, status agreed, kembalikan stok)
+      operationId: cancelDeal
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                note: { type: string, maxLength: 1000, nullable: true }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Deal cancelled" } } } } } }
+        '409': { description: Status bukan agreed }
+
+  /deals/{deal}/review:
+    post:
+      tags: [Reviews]
+      summary: Beri ulasan (completed + participant + belum pernah review, rating 1-5)
+      operationId: createReview
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [rating]
+              properties:
+                rating: { type: integer, minimum: 1, maximum: 5 }
+                comment: { type: string, maxLength: 1000, nullable: true }
+      responses:
+        '201': { description: Created, content: { application/json: { schema: { $ref: "#/components/schemas/ReviewResource" } } } }
+        '400': { description: Deal belum completed }
+        '409': { description: Sudah mereview }
+
+  /deals/{deal}/report:
+    post:
+      tags: [Reports]
+      summary: Laporkan deal (participant only)
+      operationId: reportDeal
+      parameters:
+        - $ref: "#/components/parameters/DealId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StoreReportRequest" }
+      responses:
+        '201': { description: Created }
+
+  # ── Users ──
+  /users/{user}:
+    get:
+      tags: [Users]
+      summary: Profil publik user
+      operationId: getUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id: { type: integer }
+                  name: { type: string }
+                  email_verified_at: { type: string, format: date-time, nullable: true }
+                  avg_rating: { type: number }
+                  total_reviews: { type: integer }
+                  total_sold: { type: integer }
+                  total_bought: { type: integer }
+
+  /users/{user}/reviews:
+    get:
+      tags: [Users]
+      summary: Daftar ulasan user (paginate 10)
+      operationId: getUserReviews
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Page"
+      responses:
+        '200': { description: Paginated reviews }
+
+  /users/{user}/products:
+    get:
+      tags: [Users]
+      summary: Produk user (available+verified, paginate 15)
+      operationId: getUserProducts
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - $ref: "#/components/parameters/Page"
+      responses:
+        '200': { description: Paginated products }
+
+  /users/{user}/report:
+    post:
+      tags: [Reports]
+      summary: Laporkan user
+      operationId: reportUser
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/StoreReportRequest" }
+      responses:
+        '201': { description: Created }
+        '403': { description: Tidak bisa lapor diri sendiri }
+
+  # ── Notifications ──
+  /notifications:
+    get:
+      tags: [Notifications]
+      summary: Daftar notifikasi (paginate 20 desc)
+      operationId: listNotifications
+      parameters:
+        - $ref: "#/components/parameters/Page"
+      responses:
+        '200': { description: Paginated NotificationResource, content: { application/json: { schema: { $ref: "#/components/schemas/PaginatedNotification" } } } }
+
+  /notifications/unread-count:
+    get:
+      tags: [Notifications]
+      summary: Jumlah belum dibaca
+      operationId: getUnreadCount
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { count: { type: integer } } } } } }
+
+  /notifications/{notification}/read:
+    post:
+      tags: [Notifications]
+      summary: Tandai satu notifikasi dibaca (owner only)
+      operationId: markNotificationRead
+      parameters:
+        - name: notification
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "Marked as read" } } } } } }
+        '403': { $ref: "#/components/responses/Forbidden" }
+
+  /notifications/read-all:
+    post:
+      tags: [Notifications]
+      summary: Tandai semua dibaca
+      operationId: markAllRead
+      responses:
+        '200': { description: OK, content: { application/json: { schema: { type: object, properties: { message: { type: string, example: "All marked as read" } } } } } }
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: "Sanctum personal_access_token. Header: `Authorization: Bearer <token>`"
+
+  parameters:
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    ProductId:
+      name: product
+      in: path
+      required: true
+      schema: { type: integer }
+    ConversationId:
+      name: conversation
+      in: path
+      required: true
+      schema: { type: integer }
+    DealId:
+      name: deal
+      in: path
+      required: true
+      schema: { type: integer }
+    UserId:
+      name: user
+      in: path
+      required: true
+      schema: { type: integer }
+
+  responses:
+    Unauthorized:
+      description: Belum login
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { message: "Silakan login terlebih dahulu." }
+    Forbidden:
+      description: Akses ditolak
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { message: "Akses tidak diizinkan." }
+    NotFound:
+      description: Tidak ditemukan
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { message: "Data tidak ditemukan." }
+    ValidationError:
+      description: Validasi gagal
+      content:
+        application/json:
+          schema:
+            allOf:
+              - { $ref: "#/components/schemas/Error" }
+              - type: object
+                properties:
+                  errors:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items: { type: string }
+          example:
+            message: "Data yang dikirim tidak valid."
+            errors:
+              email: ["Email sudah terdaftar."]
+    TooManyRequests:
+      description: Rate limited
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+          example: { message: "Terlalu banyak permintaan. Coba lagi nanti." }
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        message: { type: string }
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items: { type: string }
+
+    UserResource:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        nim: { type: string, nullable: true }
+        email: { type: string, format: email }
+        phone: { type: string, nullable: true }
+        profile_photo_url: { type: string, nullable: true, format: uri }
+        role: { type: string, enum: [user, moderator, admin] }
+        status: { type: string, enum: [active, suspended] }
+        email_verified_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    ProductResource:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string, nullable: true }
+        condition: { type: string, enum: [Baru (BNIB), Baru, Bekas Layak, Bekas] }
+        specification: { type: string, nullable: true }
+        completeness: { type: string, nullable: true }
+        sell_reason: { type: string, nullable: true }
+        price: { type: number }
+        stock: { type: integer }
+        status: { type: string, enum: [available, hidden, sold, archived] }
+        verification_status: { type: string, enum: [pending, verified, rejected] }
+        rejection_note: { type: string, nullable: true, description: "Hanya owner" }
+        scan_result: { type: string, nullable: true, description: "Hanya staff" }
+        scan_note: { type: string, nullable: true, description: "Hanya staff" }
+        expires_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time }
+        seller:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            profile_photo_url: { type: string, nullable: true }
+            is_verified: { type: boolean }
+        category:
+          type: object
+          nullable: true
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            slug: { type: string }
+            icon: { type: string, nullable: true }
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              id: { type: integer }
+              url: { type: string, format: uri }
+              sort_order: { type: integer }
+        is_favorited: { type: boolean }
+
+    ProductListResource:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        price: { type: number }
+        stock: { type: integer }
+        status: { type: string }
+        verification_status: { type: string }
+        condition: { type: string }
+        created_at: { type: string, format: date-time }
+        cover_image: { type: string, nullable: true, format: uri }
+        seller:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            profile_photo_url: { type: string, nullable: true }
+        category:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            slug: { type: string }
+        is_favorited: { type: boolean }
+
+    ConversationResource:
+      type: object
+      properties:
+        id: { type: integer }
+        product:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            cover_image_url: { type: string, nullable: true }
+            price: { type: number }
+            status: { type: string }
+            verification_status: { type: string }
+        other_party:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            profile_photo_url: { type: string, nullable: true }
+            is_verified: { type: boolean }
+        last_message:
+          nullable: true
+          type: object
+          properties:
+            body: { type: string }
+            created_at: { type: string, description: "diffForHumans" }
+        unread_count: { type: integer }
+        updated_at: { type: string, format: date-time }
+
+    MessageResource:
+      type: object
+      properties:
+        id: { type: integer }
+        conversation_id: { type: integer }
+        sender_id: { type: integer }
+        type: { type: string, enum: [text, location, offer] }
+        message: { type: string, nullable: true }
+        offer_price: { type: number, nullable: true }
+        offer_status: { type: string, nullable: true, enum: [pending, accepted, rejected, countered] }
+        parent_offer_id: { type: integer, nullable: true }
+        location_lat: { type: number, nullable: true }
+        location_lng: { type: number, nullable: true }
+        location_name: { type: string, nullable: true }
+        location_address: { type: string, nullable: true }
+        location_accuracy: { type: integer, nullable: true }
+        read_at: { type: string, format: date-time, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    DealResource:
+      type: object
+      properties:
+        id: { type: integer }
+        product:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            cover_image: { type: string, nullable: true }
+            price: { type: number }
+        buyer: { type: object, properties: { id: { type: integer }, name: { type: string } } }
+        seller: { type: object, properties: { id: { type: integer }, name: { type: string } } }
+        quantity: { type: integer }
+        agreed_price: { type: number }
+        total_price: { type: number }
+        status: { type: string, enum: [agreed, completed, cancelled] }
+        agreed_at: { type: string, format: date-time, nullable: true }
+        completed_at: { type: string, format: date-time, nullable: true }
+        cancelled_at: { type: string, format: date-time, nullable: true }
+        cancel_note: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    ReviewResource:
+      type: object
+      properties:
+        id: { type: integer }
+        reviewer:
+          type: object
+          properties:
+            id: { type: integer }
+            name: { type: string }
+            profile_photo_url: { type: string, nullable: true }
+        rating: { type: integer, minimum: 1, maximum: 5 }
+        comment: { type: string, nullable: true }
+        created_at: { type: string, format: date-time }
+
+    NotificationResource:
+      type: object
+      properties:
+        id: { type: integer }
+        title: { type: string }
+        body: { type: string }
+        type: { type: string }
+        reference_id: { type: integer, nullable: true }
+        is_read: { type: boolean }
+        created_at: { type: string, example: "9 Okt 2026, 14:30" }
+
+    CodPoint:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        address: { type: string, nullable: true }
+        lat: { type: number }
+        lng: { type: number }
+        is_active: { type: boolean }
+
+    StoreReportRequest:
+      type: object
+      required: [reason]
+      properties:
+        reason: { type: string, enum: [Penipuan, Barang terlarang, Sengketa transaksi, Perilaku pengguna, Foto tidak sesuai, Spam chat, Lainnya] }
+        description: { type: string, maxLength: 2000, nullable: true }
+
+    PaginatedProductList:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/ProductListResource" } }
+        links: { type: object }
+        meta: { type: object }
+
+    PaginatedConversation:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/ConversationResource" } }
+        links: { type: object }
+        meta: { type: object }
+
+    PaginatedDeal:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/DealResource" } }
+        links: { type: object }
+        meta: { type: object }
+
+    PaginatedNotification:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/NotificationResource" } }
+        links: { type: object }
+        meta: { type: object }

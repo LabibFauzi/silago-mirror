@@ -35,4 +35,39 @@ return [
         ],
     ],
 
+    'google' => [
+        'client_id' => env('GOOGLE_CLIENT_ID'),
+        'client_secret' => env('GOOGLE_CLIENT_SECRET'),
+        'redirect' => env('GOOGLE_REDIRECT_URL'),
+        'guzzle' => [
+            'verify' => false,
+        ],
+    ],
+
+    'otp' => [
+        'length' => env('OTP_LENGTH', 6),
+        'expiry_minutes' => env('OTP_EXPIRY_MINUTES', 15),
+    ],
+
+    'chat_purge' => [
+        'secret' => env('CHAT_PURGE_SECRET'),
+    ],
+
+    'fcm' => [
+        // Aktifkan setelah service account Firebase dan package FCM tersedia.
+        'enabled'     => env('FCM_ENABLED', false),
+        'project_id'  => env('FIREBASE_PROJECT_ID'),
+        // Resolve ke path absolut: jika nilai relatif, gabungkan dengan base_path().
+        // Kreait SDK membutuhkan path absolut untuk membaca file credentials.
+        'credentials' => (function () {
+            $path = env('FIREBASE_CREDENTIALS');
+            if ($path && ! str_starts_with($path, '/') && ! str_contains($path, ':')) {
+                return base_path($path);
+            }
+            return $path;
+        })(),
+    ],
+
+    'polines_email_domain' => env('POLINES_EMAIL_DOMAIN', 'polines.ac.id'),
+
 ];
