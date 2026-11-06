@@ -36,6 +36,7 @@ class User extends Authenticatable
         'otp_expires_at',
         'email_domain_verified',
         'two_factor_enabled',
+        'fcm_token', // ← wajib ada agar update() via mass-assignment bisa menyimpan token FCM
     ];
 
     /**

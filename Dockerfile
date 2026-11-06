@@ -25,6 +25,10 @@ RUN apt-get update && apt-get install -y \
     && a2enmod rewrite \
     && rm -rf /var/lib/apt/lists/*
 
+# Batas upload: 5 foto x 2 MB = 10 MB per produk (+ overhead multipart).
+RUN printf 'upload_max_filesize=12M\npost_max_size=16M\nmemory_limit=512M\nmax_execution_time=120\n' \
+    > /usr/local/etc/php/conf.d/uploads.ini
+
 # Document root ke /public + izinkan .htaccess Laravel
 RUN sed -ri 's!/var/www/html!/var/www/html/public!g' /etc/apache2/sites-available/000-default.conf \
     && printf '<Directory /var/www/html/public>\n    AllowOverride All\n    Require all granted\n</Directory>\n' > /etc/apache2/conf-available/laravel.conf \

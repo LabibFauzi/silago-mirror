@@ -36,6 +36,16 @@ class OfferService
                 throw new \RuntimeException('Kamu bukan peserta percakapan ini.', 403);
             }
 
+            $product = Product::withTrashed()->find($conversation->product_id);
+            if (
+                ! $product
+                || $product->trashed()
+                || $product->status !== 'available'
+                || $product->verification_status !== 'verified'
+            ) {
+                throw new \RuntimeException('Produk sudah tidak tersedia.', 409);
+            }
+
             if ($price <= 0) {
                 throw new \RuntimeException('Harga penawaran tidak valid.', 422);
             }
@@ -157,10 +167,15 @@ class OfferService
                 throw new \RuntimeException('Kamu bukan peserta percakapan ini.', 403);
             }
 
-            /** @var Product $product */
-            $product = Product::lockForUpdate()->findOrFail($conversation->product_id);
+            /** @var Product|null $product */
+            $product = Product::withTrashed()->lockForUpdate()->find($conversation->product_id);
 
-            if ($product->verification_status !== 'verified' || $product->status !== 'available') {
+            if (
+                ! $product
+                || $product->trashed()
+                || $product->verification_status !== 'verified'
+                || $product->status !== 'available'
+            ) {
                 throw new \RuntimeException('Produk sudah tidak tersedia untuk deal.', 409);
             }
 

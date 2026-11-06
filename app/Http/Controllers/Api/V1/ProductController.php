@@ -9,6 +9,8 @@ use App\Http\Resources\ProductListResource;
 use App\Http\Resources\ProductResource;
 use App\Models\Product;
 use App\Services\ContentScanner;
+use App\Services\NotificationService;
+use App\Services\ProductLifecycleService;
 use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -134,46 +136,64 @@ class ProductController extends Controller
     }
 
     /**
-     * Update produk.
+     * Update produk. Hanya pemilik yang boleh mengedit.
+     *
+     * Setiap perubahan akan mengembalikan status verifikasi ke `pending`
+     * sehingga admin meninjau ulang. Harga tidak boleh diubah bila masih ada
+     * transaksi aktif, tetapi deskripsi/foto tetap boleh diperbarui.
      */
-    public function update(UpdateProductRequest $request, Product $product, ContentScanner $scanner)
-    {
-        if ($request->user()->id !== $product->seller_id) {
+    public function update(
+        UpdateProductRequest $request,
+        Product $product,
+        ContentScanner $scanner,
+        ProductLifecycleService $lifecycle,
+    ) {
+        if ((int) $request->user()->id !== (int) $product->seller_id) {
             abort(403, 'Anda tidak berhak mengubah produk ini.');
         }
 
-        $hasAgreedDeal = \App\Models\MarketplaceDeal::where('product_id', $product->id)
-            ->whereIn('status', ['agreed', 'completed'])
-            ->exists();
+        // Barang hanya boleh diedit saat menunggu verifikasi atau tersedia.
+        $canEdit = $product->verification_status === 'pending'
+            || $product->status === 'available';
 
-        if ($hasAgreedDeal) {
-            abort(409, 'Tidak dapat mengubah produk karena sudah ada kesepakatan.');
-        }
-
-        $needsVerification = $request->has('name') || $request->has('description') || $request->hasFile('photos');
-
-        // Rescan konten jika nama atau deskripsi berubah
-        if ($needsVerification && ($request->has('name') || $request->has('description'))) {
-            [$scanResult, $scanNote] = $scanner->scan(
-                $request->input('name', $product->name),
-                $request->input('description', $product->description)
+        if (! $canEdit) {
+            abort(
+                409,
+                'Barang hanya bisa diedit saat menunggu verifikasi atau tersedia.',
             );
-        } else {
-            [$scanResult, $scanNote] = [$product->scan_result, $product->scan_note];
         }
 
-        $updatedProduct = DB::transaction(function () use ($request, $product, $needsVerification, $scanResult, $scanNote) {
+        $priceChanged = $request->has('price')
+            && abs((float) $request->input('price') - (float) $product->price) > 0.005;
+
+        if ($priceChanged && $lifecycle->hasActiveDeal($product->id)) {
+            abort(
+                409,
+                'Harga tidak dapat diubah karena masih ada transaksi aktif. '
+                .'Selesaikan atau batalkan transaksinya dulu.',
+            );
+        }
+
+        // Setiap edit tetap dipindai ulang kontennya.
+        [$scanResult, $scanNote] = $scanner->scan(
+            $request->input('name', $product->name),
+            $request->input('description', $product->description),
+        );
+
+        $updatedProduct = DB::transaction(function () use ($request, $product, $scanResult, $scanNote) {
             // Lock baris untuk update agar aman
             $lockedProduct = Product::where('id', $product->id)->lockForUpdate()->first();
-            
+
             $lockedProduct->fill($request->validated());
-            
-            if ($needsVerification) {
-                $lockedProduct->verification_status = 'pending';
-                $lockedProduct->scan_result = $scanResult;
-                $lockedProduct->scan_note = $scanNote;
-            }
-            
+
+            // Verifikasi ulang ke admin setiap kali barang diedit.
+            $lockedProduct->verification_status = 'pending';
+            $lockedProduct->verified_by = null;
+            $lockedProduct->verified_at = null;
+            $lockedProduct->rejection_note = null;
+            $lockedProduct->scan_result = $scanResult;
+            $lockedProduct->scan_note = $scanNote;
+
             $lockedProduct->save();
 
             if ($request->hasFile('photos')) {
@@ -202,43 +222,102 @@ class ProductController extends Controller
 
         $updatedProduct->load(['seller', 'category', 'images', 'favorites']);
 
-        return new ProductResource($updatedProduct);
+        return (new ProductResource($updatedProduct))
+            ->additional([
+                'message' => 'Perubahan barang menunggu verifikasi ulang admin.',
+            ]);
     }
 
     /**
-     * Hapus produk.
+     * Hapus produk (soft delete).
+     *
+     * Pemilik atau admin/moderator boleh menghapus. Barang dengan transaksi
+     * aktif tidak boleh dihapus. Foto tetap disimpan untuk riwayat.
      */
-    public function destroy(Request $request, Product $product)
-    {
-        if ($request->user()->id !== $product->seller_id) {
+    public function destroy(
+        Request $request,
+        Product $product,
+        ProductLifecycleService $lifecycle,
+        NotificationService $notificationService,
+    ) {
+        $user = $request->user();
+        $isOwner = (int) $user->id === (int) $product->seller_id;
+        $isAdmin = in_array($user->role, ['admin', 'moderator'], true);
+
+        if (! $isOwner && ! $isAdmin) {
             abort(403, 'Anda tidak berhak menghapus produk ini.');
         }
 
-        $hasAgreedDeal = \App\Models\MarketplaceDeal::where('product_id', $product->id)
-            ->whereIn('status', ['agreed', 'completed'])
-            ->exists();
+        // Pemilik hanya boleh menghapus barang tersedia/terjual, atau menarik
+        // pengajuan yang masih pending (batal penambahan barang).
+        if ($isOwner && ! $isAdmin) {
+            $isPending = $product->verification_status === 'pending';
+            $canDelete = $isPending
+                || in_array($product->status, ['available', 'sold'], true);
 
-        if ($hasAgreedDeal) {
-            abort(409, 'Tidak dapat menghapus produk karena sudah ada kesepakatan.');
+            if (! $canDelete) {
+                abort(
+                    409,
+                    'Barang ini tidak dapat dihapus.',
+                );
+            }
         }
 
-        DB::transaction(function () use ($product) {
-            $lockedProduct = Product::where('id', $product->id)->lockForUpdate()->first();
-            
-            // Hapus foto dari storage
-            $images = $lockedProduct->images()->get();
-            foreach ($images as $img) {
-                Storage::disk('public')->delete($img->image_path);
-            }
-            
-            // Delete gambar dari db dan sembunyikan atau hapus produk
-            $lockedProduct->images()->delete();
-            $lockedProduct->status = 'hidden';
-            $lockedProduct->save();
-            // Alternatif: $lockedProduct->delete(); tapi instruksi menyebutkan "Delete atau soft-hide"
-        });
+        $productName = $product->name;
+        $productId = $product->id;
+
+        try {
+            $recipients = $lifecycle->deleteProduct($product, (int) $user->id);
+        } catch (\RuntimeException $e) {
+            abort($e->getCode() ?: 409, $e->getMessage());
+        }
+
+        foreach ($recipients as $recipient) {
+            $notificationService->productUnavailable(
+                $recipient['user_id'],
+                $recipient['conversation_id'],
+                $productName,
+                $productId,
+            );
+        }
 
         return response()->json(['message' => 'Produk berhasil dihapus.']);
+    }
+
+    /**
+     * Tandai barang terjual / nonaktifkan / aktifkan kembali.
+     */
+    public function updateStatus(
+        Request $request,
+        Product $product,
+        ProductLifecycleService $lifecycle,
+        SettingService $settingService,
+    ) {
+        if ((int) $request->user()->id !== (int) $product->seller_id) {
+            abort(403, 'Anda tidak berhak mengubah status produk ini.');
+        }
+
+        $data = $request->validate([
+            'status' => ['required', 'string', 'in:available,sold,inactive'],
+        ]);
+
+        $wasSold = $product->status === 'sold';
+
+        $product = $lifecycle->updateStatus($product, $data['status']);
+
+        // Jual lagi barang yang sudah terjual: segarkan masa tayang agar
+        // kembali muncul di etalase.
+        if ($wasSold && $data['status'] === 'available') {
+            $activeDays = $settingService->getInt('listing_active_days', 30);
+            $product->expires_at = now()->addDays($activeDays);
+            $product->save();
+        }
+
+        $product->load(['seller', 'category', 'images', 'favorites']);
+
+        return (new ProductResource($product))->additional([
+            'message' => 'Status barang berhasil diperbarui.',
+        ]);
     }
 
     /**

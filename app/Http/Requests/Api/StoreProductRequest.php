@@ -33,7 +33,7 @@ class StoreProductRequest extends FormRequest
             'category_id' => ['required', 'exists:categories,id'],
             'photos' => ['required', 'array', 'min:1', 'max:' . $maxPhotos],
             // Maksimal 1 MB per foto.
-            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:1024'],
+            'photos.*' => ['image', 'mimes:jpg,jpeg,png,webp', 'max:2048'],
         ];
     }
 }

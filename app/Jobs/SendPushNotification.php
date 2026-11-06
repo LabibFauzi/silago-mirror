@@ -41,6 +41,10 @@ class SendPushNotification implements ShouldQueue
         $user = User::find($this->userId);
 
         if (! $user || ! $user->fcm_token) {
+            Log::warning('Push notification skipped - no FCM token', [
+                'user_id' => $this->userId,
+                'type' => $this->data['type'] ?? null,
+            ]);
             return; // Tidak ada token FCM, lewati
         }
 
@@ -56,6 +60,12 @@ class SendPushNotification implements ShouldQueue
         }
 
         try {
+            Log::info('Sending push notification', [
+                'user_id' => $this->userId,
+                'type' => $this->data['type'] ?? null,
+                'token_prefix' => substr($user->fcm_token, 0, 12) . '…',
+            ]);
+
             $message = CloudMessage::new()
                 ->withToken($user->fcm_token)
                 ->withNotification(Notification::create($this->title, $this->body))
@@ -77,6 +87,10 @@ class SendPushNotification implements ShouldQueue
             ]);
         } catch (NotFound $e) {
             // Token sudah tidak valid (app di-uninstall / token kadaluarsa).
+            Log::warning('Push notification token invalid', [
+                'user_id' => $this->userId,
+                'type' => $this->data['type'] ?? null,
+            ]);
             $user->update(['fcm_token' => null]);
         } catch (\Throwable $e) {
             // Kegagalan push hanya dicatat, tidak disebarkan.
@@ -84,6 +98,7 @@ class SendPushNotification implements ShouldQueue
                 'user_id' => $this->userId,
                 'type'    => $this->data['type'] ?? null,
                 'error'   => $e->getMessage(),
+                'class'   => get_class($e),
             ]);
         }
     }

@@ -35,7 +35,10 @@ class MessageController extends Controller
         }
 
         $limit = $request->input('limit', 30);
-        $messages = $query->orderBy('created_at', 'asc')->limit($limit)->get();
+        $messages = $query->with('replyTo')
+            ->orderBy('created_at', 'asc')
+            ->limit($limit)
+            ->get();
 
         return MessageResource::collection($messages);
     }
@@ -54,6 +57,17 @@ class MessageController extends Controller
                 'type' => $request->type,
                 'message' => $request->message,
             ];
+
+            if ($request->filled('reply_to_id')) {
+                $replyToId = (int) $request->input('reply_to_id');
+                $validReply = $conversation->messages()
+                    ->where('id', $replyToId)
+                    ->exists();
+
+                if ($validReply) {
+                    $data['reply_to_id'] = $replyToId;
+                }
+            }
 
             if ($request->type === 'location') {
                 $data['location_lat'] = $request->location_lat;
@@ -80,7 +94,43 @@ class MessageController extends Controller
             (string) $request->user()->name,
         );
 
+        $message->load('replyTo');
+
         return new MessageResource($message);
+    }
+
+    /**
+     * Hapus satu pesan (soft delete, ala WhatsApp "hapus untuk semua").
+     * Hanya pengirim pesan yang boleh menghapus pesannya sendiri.
+     */
+    public function destroy(Request $request, Conversation $conversation, Message $message)
+    {
+        $userId = $request->user()->id;
+
+        if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke percakapan ini.'], 403);
+        }
+
+        if ((int) $message->conversation_id !== (int) $conversation->id) {
+            abort(404, 'Pesan tidak ditemukan.');
+        }
+
+        if ((int) $message->sender_id !== $userId) {
+            return response()->json(['message' => 'Kamu hanya bisa menghapus pesanmu sendiri.'], 403);
+        }
+
+        if ($message->deleted_at === null) {
+            $message->deleted_at = now();
+            $message->save();
+            $conversation->touch();
+        }
+
+        $message->load('replyTo');
+
+        return response()->json([
+            'message' => 'Pesan dihapus.',
+            'data' => new MessageResource($message),
+        ]);
     }
 
     private function storeImage($file, int $conversationId): array

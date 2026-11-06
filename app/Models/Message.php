@@ -19,12 +19,14 @@ class Message extends Model
         'offer_price',
         'offer_status',
         'parent_offer_id',
+        'reply_to_id',
         'location_lat',
         'location_lng',
         'location_name',
         'location_address',
         'location_accuracy',
         'read_at',
+        'deleted_at',
         'image_path',
         'image_thumbnail',
         'image_caption',
@@ -38,6 +40,7 @@ class Message extends Model
             'location_lng' => 'decimal:7',
             'location_accuracy' => 'integer',
             'read_at' => 'datetime',
+            'deleted_at' => 'datetime',
         ];
     }
 
@@ -54,6 +57,16 @@ class Message extends Model
     public function parentOffer(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'parent_offer_id');
+    }
+
+    public function replyTo(): BelongsTo
+    {
+        return $this->belongsTo(Message::class, 'reply_to_id');
+    }
+
+    public function getIsDeletedAttribute(): bool
+    {
+        return $this->deleted_at !== null;
     }
 
     public function getImageUrlAttribute(): ?string

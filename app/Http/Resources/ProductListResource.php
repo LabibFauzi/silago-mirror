@@ -24,6 +24,10 @@ class ProductListResource extends JsonResource
             'status' => $this->status,
             'verification_status' => $this->verification_status,
             'condition' => $this->condition,
+            'description' => $this->description,
+            'specification' => $this->specification,
+            'completeness' => $this->completeness,
+            'sell_reason' => $this->sell_reason,
             'created_at' => $this->created_at,
             
             'cover_image' => $this->whenLoaded('images', function () {
