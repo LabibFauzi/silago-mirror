@@ -14,8 +14,6 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class StockController extends Controller
@@ -88,7 +86,7 @@ class StockController extends Controller
         $data['images'] = $product->images->map(function (ProductImage $image) {
             return [
                 'id' => $image->id,
-                'url' => Storage::url($image->image_path),
+                'url' => $image->url,
                 'sort_order' => $image->sort_order,
             ];
         })->values()->all();
@@ -116,7 +114,8 @@ class StockController extends Controller
             'specification'       => 'nullable|string',
             'completeness'        => 'nullable|string|max:100',
             'sell_reason'         => 'nullable|string',
-            'photo'               => 'nullable|image|mimes:jpg,jpeg,png,webp,svg,gif|max:5120',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
 
         $validator = validator(
@@ -130,7 +129,7 @@ class StockController extends Controller
 
         try {
             DB::transaction(function () use ($request, $validated) {
-                $productData = collect($validated)->except(['photo'])->all();
+                $productData = collect($validated)->except(['photos'])->all();
                 
                 foreach ($productData as $k => $v) {
                     if ($v === '') $productData[$k] = null;
@@ -141,16 +140,10 @@ class StockController extends Controller
                 $product = new Product();
                 $product->forceFill($productData)->save();
 
-                if ($request->hasFile('photo')) {
-                    $file = $request->file('photo');
-                    $ext = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $ext;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $product->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => 0,
-                    ]);
+                if ($request->hasFile('photos')) {
+                    foreach ($request->file('photos') as $index => $file) {
+                        $this->imageService->create($product, $file, $index);
+                    }
                 }
 
                 $this->auditLogService->log(
@@ -188,7 +181,8 @@ class StockController extends Controller
             'specification'       => 'nullable|string',
             'completeness'        => 'nullable|string|max:100',
             'sell_reason'         => 'nullable|string',
-            'photo'               => 'nullable|image|mimes:jpg,jpeg,png,webp,svg,gif|max:5120',
+            'photos'              => 'nullable|array|max:5',
+            'photos.*'            => 'image|mimes:jpg,jpeg,png,webp|max:5120',
         ];
 
         $validator = validator(
@@ -202,7 +196,7 @@ class StockController extends Controller
 
         try {
             DB::transaction(function () use ($request, $product, $validated) {
-                $productData = collect($validated)->except(['photo'])->all();
+                $productData = collect($validated)->except(['photos'])->all();
                 
                 foreach ($productData as $k => $v) {
                     if ($v === '') $productData[$k] = null;
@@ -210,23 +204,14 @@ class StockController extends Controller
 
                 $product->forceFill($productData)->save();
 
-                if ($request->hasFile('photo')) {
-                    foreach ($product->images as $oldImg) {
-                        if ($oldImg->image_path && Storage::disk('public')->exists($oldImg->image_path)) {
-                            Storage::disk('public')->delete($oldImg->image_path);
-                        }
+                if ($request->hasFile('photos')) {
+                    foreach ($product->images()->get() as $oldImg) {
+                        $this->imageService->delete($oldImg);
                     }
-                    $product->images()->delete();
 
-                    $file = $request->file('photo');
-                    $ext = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $ext;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $product->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => 0,
-                    ]);
+                    foreach ($request->file('photos') as $index => $file) {
+                        $this->imageService->create($product, $file, $index);
+                    }
                 }
 
                 $this->auditLogService->log(
@@ -313,7 +298,7 @@ class StockController extends Controller
             'specification'       => 'Spesifikasi',
             'completeness'        => 'Kelengkapan',
             'sell_reason'         => 'Alasan Dijual',
-            'photo'               => 'Foto Barang',
+            'photos'              => 'Foto Barang',
         ];
     }
 }

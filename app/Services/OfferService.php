@@ -26,6 +26,7 @@ class OfferService
         int $senderId,
         float $price,
         ?string $note = null,
+        ?string $note = null,
         ?int $parentOfferId = null,
     ): Message {
         return DB::transaction(function () use ($conversation, $senderId, $price, $note, $parentOfferId) {

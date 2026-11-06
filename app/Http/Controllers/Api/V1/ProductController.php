@@ -14,8 +14,6 @@ use App\Services\ProductLifecycleService;
 use App\Services\SettingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Str;
 use Illuminate\Database\Eloquent\Builder;
 
 class ProductController extends Controller
@@ -92,13 +90,17 @@ class ProductController extends Controller
     /**
      * Simpan produk baru.
      */
-    public function store(StoreProductRequest $request, ContentScanner $scanner, SettingService $settingService)
-    {
+    public function store(
+        StoreProductRequest $request,
+        ContentScanner $scanner,
+        SettingService $settingService,
+        ProductImageService $imageService
+    ) {
         $activeDays = $settingService->getInt('listing_active_days', 30);
         
         [$scanResult, $scanNote] = $scanner->scan($request->name, $request->description);
 
-        $product = DB::transaction(function () use ($request, $activeDays, $scanResult, $scanNote) {
+        $product = DB::transaction(function () use ($request, $activeDays, $scanResult, $scanNote, $imageService) {
             $prod = new Product($request->validated());
             $prod->seller_id = $request->user()->id;
             $prod->status = 'available';
@@ -113,14 +115,7 @@ class ProductController extends Controller
 
             if ($request->hasFile('photos')) {
                 foreach ($request->file('photos') as $index => $file) {
-                    $extension = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $prod->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => $index,
-                    ]);
+                    $imageService->create($prod, $file, $index);
                 }
             }
 
@@ -197,23 +192,14 @@ class ProductController extends Controller
             $lockedProduct->save();
 
             if ($request->hasFile('photos')) {
-                // Hapus foto lama
-                $oldImages = $lockedProduct->images()->get();
-                foreach ($oldImages as $img) {
-                    Storage::disk('public')->delete($img->image_path);
-                    $img->delete();
+                // Hapus foto lama (file disk maupun data di database).
+                foreach ($lockedProduct->images()->get() as $img) {
+                    $imageService->delete($img);
                 }
 
-                // Simpan foto baru
+                // Simpan foto baru ke database.
                 foreach ($request->file('photos') as $index => $file) {
-                    $extension = $file->getClientOriginalExtension() ?: 'webp';
-                    $filename = Str::uuid() . '.' . $extension;
-                    $path = $file->storeAs('products', $filename, 'public');
-
-                    $lockedProduct->images()->create([
-                        'image_path' => $path,
-                        'sort_order' => $index,
-                    ]);
+                    $imageService->create($lockedProduct, $file, $index);
                 }
             }
 

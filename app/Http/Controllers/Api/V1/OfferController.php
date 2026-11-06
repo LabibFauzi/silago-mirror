@@ -26,6 +26,10 @@ class OfferController extends Controller
 
         // Validasi harga > 0 dan <= product.price (N3)
         $product = $conversation->product;
+        if (! $product) {
+            return response()->json(['message' => 'Produk tidak ditemukan.'], 404);
+        }
+
         if ($request->price <= 0 || $request->price > $product->price) {
             return response()->json(['message' => 'Harga penawaran tidak valid.'], 400);
         }
@@ -44,9 +48,29 @@ class OfferController extends Controller
             ], 409);
         }
 
+        if ($product->verification_status !== 'verified' || $product->status !== 'available') {
+            return response()->json(['message' => 'Produk sudah tidak tersedia untuk ditawar.'], 409);
+        }
+
+        $hasActiveDeal = MarketplaceDeal::where('conversation_id', $conversation->id)
+            ->whereIn('status', ['agreed', 'completed'])
+            ->exists();
+
+        if ($hasActiveDeal) {
+            return response()->json([
+                'message' => 'Percakapan ini sudah memiliki kesepakatan. Gunakan Nego Ulang dari kartu deal.',
+            ], 409);
+        }
+
         try {
-            $offer = $offerService->createOffer($conversation, $userId, $request->price, $request->note, $request->parent_offer_id);
-            
+            $offer = $offerService->createOffer(
+                conversation: $conversation,
+                senderId: $userId,
+                price: (float) $request->price,
+                note: $request->note,
+                parentOfferId: $request->filled('parent_offer_id') ? (int) $request->parent_offer_id : null,
+            );
+
             $recipientId = $conversation->buyer_id === $userId ? $conversation->seller_id : $conversation->buyer_id;
 
             $notificationService->newOffer(
@@ -94,6 +118,19 @@ class OfferController extends Controller
         }
     }
 
+    public function withdraw(Request $request, Message $offer, OfferService $offerService)
+    {
+        $userId = $request->user()->id;
+
+        try {
+            $offerService->withdrawOffer($offer, $userId);
+            return response()->json(['message' => 'Offer withdrawn'], 200);
+        } catch (\Exception $e) {
+            $code = $e->getCode() ?: 400;
+            return response()->json(['message' => $e->getMessage()], $code >= 400 && $code < 600 ? $code : 400);
+        }
+    }
+
     public function reject(Request $request, Message $offer, OfferService $offerService, NotificationService $notificationService)
     {
         $conversation = $offer->conversation;
@@ -110,6 +147,10 @@ class OfferController extends Controller
         if ($offer->sender_id === $userId) {
             return response()->json(['message' => 'Tidak dapat menolak penawaran sendiri.'], 403);
         }
+
+        $validated = $request->validate([
+            'reason' => ['nullable', 'string', 'max:500'],
+        ]);
 
         $validated = $request->validate([
             'reason' => ['nullable', 'string', 'max:500'],

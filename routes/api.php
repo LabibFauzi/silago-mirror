@@ -72,6 +72,8 @@ Route::prefix('v1')->group(function () {
 
         // Chat dan negosiasi
         Route::get('/conversations',                              [\App\Http\Controllers\Api\V1\ConversationController::class, 'index']);
+        Route::get('/conversations/unread-count',                 [\App\Http\Controllers\Api\V1\ConversationController::class, 'unreadCount']);
+        Route::post('/conversations/read-all',                     [\App\Http\Controllers\Api\V1\ConversationController::class, 'markAllRead']);
         Route::post('/products/{product}/conversations',          [\App\Http\Controllers\Api\V1\ConversationController::class, 'store']);
         Route::get('/conversations/unread-count',                 [\App\Http\Controllers\Api\V1\ConversationController::class, 'unreadCount']);
         Route::post('/conversations/read-all',                    [\App\Http\Controllers\Api\V1\ConversationController::class, 'markAllRead']);

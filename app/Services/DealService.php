@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Conversation;
+use App\Models\Conversation;
 use App\Models\MarketplaceDeal;
 use App\Models\Message;
 use App\Models\Product;

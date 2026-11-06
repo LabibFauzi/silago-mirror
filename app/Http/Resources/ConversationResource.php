@@ -86,7 +86,7 @@ class ConversationResource extends JsonResource
                 'sender_id' => $last->sender_id,
                 'created_at' => $last->created_at?->toIso8601String(),
             ] : null,
-            'unread_count' => $this->unread_count ?? 0,
+            'unread_count' => (int) ($this->unread_count ?? 0),
             'updated_at' => $this->updated_at,
         ];
     }

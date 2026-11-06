@@ -73,15 +73,7 @@ class Product extends Model
 
     public function getImageUrlAttribute(): ?string
     {
-        $firstImage = $this->images->sortBy('sort_order')->first();
-        if (!$firstImage || !$firstImage->image_path) {
-            return null;
-        }
-        $path = $firstImage->image_path;
-        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-            return $path;
-        }
-        return '/storage/' . ltrim($path, '/');
+        return $this->images->sortBy('sort_order')->first()?->url;
     }
 
     /**
@@ -93,13 +85,8 @@ class Product extends Model
     {
         return $this->images
             ->sortBy('sort_order')
-            ->map(function ($image) {
-                $path = $image->image_path;
-                if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
-                    return $path;
-                }
-                return Storage::url($path);
-            })
+            ->map(fn (ProductImage $image) => $image->url)
+            ->filter()
             ->values()
             ->all();
     }

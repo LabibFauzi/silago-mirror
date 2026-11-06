@@ -10,6 +10,7 @@ use App\Models\Conversation;
 use App\Models\ConversationPresence;
 use App\Models\MarketplaceDeal;
 use App\Models\Message;
+use App\Models\Message;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
@@ -35,22 +36,19 @@ class ConversationController extends Controller
             ]);
 
         if ($request->filled('q')) {
-            $search = strtolower($request->q);
-            $query->whereHas('product', function ($q) use ($search) {
-                $q->whereRaw('LOWER(name) LIKE ?', ["%{$search}%"]);
+            $search = '%' . strtolower((string) $request->q) . '%';
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('product', function ($product) use ($search) {
+                    $product->whereRaw('LOWER(name) LIKE ?', [$search]);
+                })->orWhereHas('buyer', function ($user) use ($search) {
+                    $user->whereRaw('LOWER(name) LIKE ?', [$search]);
+                })->orWhereHas('seller', function ($user) use ($search) {
+                    $user->whereRaw('LOWER(name) LIKE ?', [$search]);
+                });
             });
         }
 
         $conversations = $query->orderByDesc('updated_at')->paginate(20);
-
-        // Calculate unread count per conversation
-        $conversations->getCollection()->transform(function ($conversation) use ($userId) {
-            $conversation->unread_count = $conversation->messages()
-                ->where('sender_id', '!=', $userId)
-                ->whereNull('read_at')
-                ->count();
-            return $conversation;
-        });
 
         return ConversationResource::collection($conversations);
     }
@@ -130,7 +128,7 @@ class ConversationController extends Controller
             'seller_id' => $product->seller_id,
         ]);
 
-        return new ConversationResource($conversation);
+        return (new ConversationResource($conversation))->response()->setStatusCode(200);
     }
 
     public function show(Request $request, Conversation $conversation)
@@ -160,6 +158,8 @@ class ConversationController extends Controller
             ->latest('id')
             ->first();
 
+        $latestDeal = $conversation->latestDeal;
+
         return response()->json([
             'data' => [
                 'conversation' => new ConversationResource($conversation),
@@ -173,6 +173,39 @@ class ConversationController extends Controller
                     ? (new DealResource($latestDeal->load(['product', 'buyer', 'seller'])))->resolve($request)
                     : null,
             ],
+        ]);
+    }
+
+    public function unreadCount(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $count = Message::query()
+            ->whereHas('conversation', function ($q) use ($userId) {
+                $q->where('buyer_id', $userId)->orWhere('seller_id', $userId);
+            })
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
+    public function markAllRead(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $count = Message::query()
+            ->whereHas('conversation', function ($q) use ($userId) {
+                $q->where('buyer_id', $userId)->orWhere('seller_id', $userId);
+            })
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json([
+            'message' => 'Semua pesan ditandai sudah dibaca.',
+            'count' => $count,
         ]);
     }
 }

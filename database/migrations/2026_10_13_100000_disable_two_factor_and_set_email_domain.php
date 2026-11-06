@@ -21,10 +21,11 @@ return new class extends Migration
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
             // PostgreSQL: set default via ALTER COLUMN ... SET DEFAULT
             DB::statement('ALTER TABLE users ALTER COLUMN two_factor_enabled SET DEFAULT false');
-        } else {
+        } elseif (Schema::getConnection()->getDriverName() === 'mysql') {
             // MySQL / MariaDB
             DB::statement('ALTER TABLE users MODIFY two_factor_enabled TINYINT(1) NOT NULL DEFAULT 0');
         }
+        // SQLite (test): default kolom tidak memengaruhi perilaku aplikasi.
 
         // Set allowed_email_domains ke mhs.polines.ac.id
         DB::table('settings')->updateOrInsert(
@@ -42,7 +43,7 @@ return new class extends Migration
 
         if (Schema::getConnection()->getDriverName() === 'pgsql') {
             DB::statement('ALTER TABLE users ALTER COLUMN two_factor_enabled SET DEFAULT true');
-        } else {
+        } elseif (Schema::getConnection()->getDriverName() === 'mysql') {
             DB::statement('ALTER TABLE users MODIFY two_factor_enabled TINYINT(1) NOT NULL DEFAULT 1');
         }
 

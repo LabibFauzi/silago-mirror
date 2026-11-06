@@ -331,7 +331,7 @@ function stockManager() {
         isEdit: wasEdit,
         formAction: oldFormAction || (wasEdit ? '' : @json(route('admin.stock.store'))),
         formData: hasErrors ? oldInputs : { status: 'available', verification_status: 'verified' },
-        photoPreview: null,
+        photoPreviews: [],
         deleteAction: '',
         deleteLabel: '',
 
@@ -349,7 +349,7 @@ function stockManager() {
             this.isEdit = false;
             this.formAction = @json(route('admin.stock.store'));
             this.formData = { status: 'available', verification_status: 'verified' };
-            this.photoPreview = null;
+            this.photoPreviews = [];
             document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
             this.showModal = true;
         },
@@ -358,7 +358,7 @@ function stockManager() {
             this.isEdit = true;
             this.formAction = @json(url('admin/stock')) + '/' + id;
             this.formData = {};
-            this.photoPreview = null;
+            this.photoPreviews = [];
             document.querySelectorAll('input[type="file"]').forEach(input => input.value = '');
 
             try {
@@ -377,15 +377,17 @@ function stockManager() {
         closeModal() {
             this.showModal = false;
             this.formData = {};
-            this.photoPreview = null;
+            this.photoPreviews = [];
         },
 
-        previewPhoto(event) {
-            const file = event.target.files[0];
-            if (file) {
-                this.photoPreview = URL.createObjectURL(file);
-            } else {
-                this.photoPreview = null;
+        previewPhotos(event) {
+            const files = event.target.files;
+            this.photoPreviews = [];
+            if (files && files.length > 0) {
+                const maxFiles = Math.min(files.length, 5);
+                for (let i = 0; i < maxFiles; i++) {
+                    this.photoPreviews.push(URL.createObjectURL(files[i]));
+                }
             }
         },
 
