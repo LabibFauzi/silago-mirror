@@ -22,6 +22,7 @@ class User extends Authenticatable
         'nim',
         'email',
         'phone',
+        'show_phone',
         'password',
         'role',
         'status',
@@ -58,6 +59,7 @@ class User extends Authenticatable
             'otp_expires_at' => 'datetime',
             'email_domain_verified' => 'boolean',
             'two_factor_enabled' => 'boolean',
+            'show_phone' => 'boolean',
         ];
     }
 
@@ -69,6 +71,11 @@ class User extends Authenticatable
     public function favorites(): HasMany
     {
         return $this->hasMany(Favorite::class);
+    }
+
+    public function reports(): HasMany
+    {
+        return $this->hasMany(Report::class, 'reported_user_id');
     }
 
     public function marketplaceDeals(): HasMany

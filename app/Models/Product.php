@@ -19,7 +19,6 @@ class Product extends Model
         'completeness',
         'sell_reason',
         'price',
-        'stock',
         'status',
         'verification_status',
         'verified_by',
@@ -34,7 +33,6 @@ class Product extends Model
     {
         return [
             'price' => 'decimal:2',
-            'stock' => 'integer',
             'verified_at' => 'datetime',
             'expires_at' => 'datetime',
         ];

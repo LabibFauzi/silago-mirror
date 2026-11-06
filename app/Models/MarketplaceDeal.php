@@ -17,6 +17,11 @@ class MarketplaceDeal extends Model
         'seller_id',
         'quantity',
         'agreed_price',
+        'current_offer_price',
+        'buyer_agreed',
+        'seller_agreed',
+        'buyer_agreed_at',
+        'seller_agreed_at',
         'payment_method',
         'status',
         'agreed_at',
@@ -32,6 +37,7 @@ class MarketplaceDeal extends Model
         'cancelled_by',
         'cancel_reason',
         'cancel_note',
+        'reported_at',
     ];
 
     protected function casts(): array
@@ -39,6 +45,11 @@ class MarketplaceDeal extends Model
         return [
             'quantity' => 'integer',
             'agreed_price' => 'decimal:2',
+            'current_offer_price' => 'decimal:2',
+            'buyer_agreed' => 'boolean',
+            'seller_agreed' => 'boolean',
+            'buyer_agreed_at' => 'datetime',
+            'seller_agreed_at' => 'datetime',
             'agreed_at' => 'datetime',
             'completion_token_expires_at' => 'datetime',
             'completion_attempts' => 'integer',
@@ -47,6 +58,7 @@ class MarketplaceDeal extends Model
             'completed_lat' => 'decimal:7',
             'completed_lng' => 'decimal:7',
             'cancelled_at' => 'datetime',
+            'reported_at' => 'datetime',
         ];
     }
 
@@ -83,6 +95,11 @@ class MarketplaceDeal extends Model
     public function review(): HasOne
     {
         return $this->hasOne(Review::class);
+    }
+
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
     }
 
     public function reports(): HasMany

@@ -82,8 +82,9 @@
                                     $val = $record->{$col};
                                     $cls = match($val) {
                                         'active','verified','completed','admin','resolved' => 'bg-green-100 text-green-700',
-                                        'pending','monitored','reviewed','agreed','moderator' => 'bg-yellow-100 text-yellow-700',
-                                        'suspended','rejected','cancelled','dismissed' => 'bg-red-100 text-red-700',
+                                        'pending','monitored','reviewed','agreed','moderator','reserved' => 'bg-yellow-100 text-yellow-700',
+                                        'negotiating' => 'bg-blue-100 text-blue-700',
+                                        'suspended','rejected','cancelled','canceled','dismissed' => 'bg-red-100 text-red-700',
                                         default => 'bg-gray-100 text-gray-600',
                                     };
                                 @endphp
@@ -271,7 +272,6 @@
                                 'completeness'        => 'Kelengkapan',
                                 'sell_reason'         => 'Alasan Dijual',
                                 'price'               => 'Harga Barang',
-                                'stock'               => 'Stok Barang',
                                 'verification_status' => 'Status Verifikasi',
                                 'rejection_note'      => 'Catatan Penolakan Verifikasi',
                                 'scan_result'         => 'Hasil Scan AI / Keamanan',
@@ -334,7 +334,7 @@
                                 $isPassword = $field === 'password';
                                 $isEmail    = $field === 'email';
                                 $isPrice    = in_array($field, ['price', 'agreed_price', 'offer_price']);
-                                $isInteger  = in_array($field, ['stock', 'quantity', 'rating', 'sort_order', 'location_accuracy']);
+                                $isInteger  = in_array($field, ['quantity', 'rating', 'sort_order', 'location_accuracy']);
                                 $isCoord    = in_array($field, ['lat', 'lng', 'location_lat', 'location_lng', 'completed_lat', 'completed_lng']);
 
                                 $isSelect = false;
@@ -360,6 +360,7 @@
                                     $isSelect = true;
                                     $options = [
                                         'available' => 'Available (Tersedia)',
+                                        'reserved'  => 'Reserved (Dipesan)',
                                         'sold'      => 'Sold (Terjual)',
                                         'hidden'    => 'Hidden (Disembunyikan)',
                                         'archived'  => 'Archived (Diarsipkan)',
@@ -368,9 +369,10 @@
                                 if ($field === 'status' && $table === 'marketplace_deals') {
                                     $isSelect = true;
                                     $options = [
-                                        'agreed'    => 'Agreed (Disepakati)',
-                                        'completed' => 'Completed (Selesai)',
-                                        'cancelled' => 'Cancelled (Dibatalkan)',
+                                        'negotiating' => 'Negotiating (Negosiasi)',
+                                        'agreed'      => 'Agreed (Disepakati)',
+                                        'completed'   => 'Completed (Selesai)',
+                                        'cancelled'   => 'Cancelled (Dibatalkan)',
                                     ];
                                 }
                                 if ($field === 'status' && $table === 'reports') {

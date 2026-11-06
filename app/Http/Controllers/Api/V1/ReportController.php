@@ -8,6 +8,7 @@ use App\Models\MarketplaceDeal;
 use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ReportController extends Controller
 {
@@ -21,6 +22,7 @@ class ReportController extends Controller
 
         $report = $product->reports()->create([
             'reporter_id' => $userId,
+            'reported_user_id' => $product->seller_id,
             'reason' => $request->reason,
             'description' => $request->description,
             'status' => 'pending',
@@ -52,15 +54,23 @@ class ReportController extends Controller
         $userId = $request->user()->id;
 
         if ($deal->buyer_id !== $userId && $deal->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses ke transaksi ini.'], 403);
         }
 
-        $report = $deal->reports()->create([
-            'reporter_id' => $userId,
-            'reason' => $request->reason,
-            'description' => $request->description,
-            'status' => 'pending',
-        ]);
+        $report = DB::transaction(function () use ($deal, $request, $userId) {
+            // Tandai deal reported agar chat dan bukti tidak dibersihkan.
+            $deal->update(['reported_at' => now()]);
+
+            return $deal->reports()->create([
+                'reporter_id' => $userId,
+                'reported_user_id' => $deal->buyer_id === $userId
+                    ? $deal->seller_id
+                    : $deal->buyer_id,
+                'reason' => $request->reason,
+                'description' => $request->description,
+                'status' => 'pending',
+            ]);
+        });
 
         return response()->json(['message' => 'Laporan berhasil dibuat.', 'data' => $report], 201);
     }

@@ -33,15 +33,17 @@ class StockController extends Controller
         $query = Product::query();
         
         $allCount = (clone $query)->count();
-        $availableCount = (clone $query)->where('stock', '>', 0)->count();
-        $outCount = (clone $query)->where('stock', 0)->count();
+        $availableCount = (clone $query)->where('status', 'available')->count();
+        $outCount = (clone $query)->where('status', 'sold')->count();
 
         $products = $query->with(['seller', 'category', 'images' => fn ($q) => $q->orderBy('sort_order')])
             ->when($filter && $filter !== 'all', function ($q) use ($filter) {
                 if ($filter === 'available') {
-                    $q->where('stock', '>', 0);
+                    $q->where('status', 'available');
+                } elseif ($filter === 'reserved') {
+                    $q->where('status', 'reserved');
                 } elseif ($filter === 'out') {
-                    $q->where('stock', 0);
+                    $q->where('status', 'sold');
                 } elseif ($filter === 'pending') {
                     $q->where('verification_status', 'pending');
                 }
@@ -110,9 +112,8 @@ class StockController extends Controller
             'category_id'         => 'required|exists:categories,id',
             'name'                => 'required|string|max:150',
             'price'               => 'required|numeric|min:0',
-            'stock'               => 'required|integer|min:0',
             'condition'           => 'nullable|string|max:50',
-            'status'              => 'required|in:available,sold,hidden,archived',
+            'status'              => 'required|in:available,reserved,sold,hidden,archived',
             'verification_status' => 'required|in:verified,pending,rejected',
             'description'         => 'nullable|string',
             'specification'       => 'nullable|string',
@@ -165,7 +166,7 @@ class StockController extends Controller
 
             return redirect()
                 ->route('admin.stock.index')
-                ->with('success', 'Barang berhasil ditambahkan dan langsung tersedia di stok.');
+                ->with('success', 'Barang berhasil ditambahkan dan langsung tersedia di katalog.');
         } catch (\Exception $e) {
             return back()
                 ->withInput()
@@ -187,9 +188,8 @@ class StockController extends Controller
             'category_id'         => 'required|exists:categories,id',
             'name'                => 'required|string|max:150',
             'price'               => 'required|numeric|min:0',
-            'stock'               => 'required|integer|min:0',
             'condition'           => 'nullable|string|max:50',
-            'status'              => 'required|in:available,sold,hidden,archived',
+            'status'              => 'required|in:available,reserved,sold,hidden,archived',
             'verification_status' => 'required|in:verified,pending,rejected',
             'description'         => 'nullable|string',
             'specification'       => 'nullable|string',
@@ -312,7 +312,6 @@ class StockController extends Controller
             'category_id'         => 'Kategori Barang',
             'name'                => 'Nama Barang',
             'price'               => 'Harga Barang',
-            'stock'               => 'Stok Barang',
             'condition'           => 'Kondisi Barang',
             'status'              => 'Status Barang',
             'verification_status' => 'Status Verifikasi',

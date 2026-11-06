@@ -33,13 +33,9 @@ class RemindPendingDeals extends Command
             ->chunk(50, function ($deals) use (&$count) {
                 foreach ($deals as $deal) {
                     try {
-                        $this->notif->send(
-                            $deal->buyer_id,
-                            'Pengingat Transaksi',
-                            "Kamu masih punya kesepakatan yang belum diselesaikan untuk barang \"{$deal->product->name}\".",
-                            'reminder_deal',
-                            $deal->id
-                        );
+                        // Pengingat COD dikirim ke kedua pihak (maksimal sekali/hari).
+                        $this->notif->codReminder($deal->buyer_id, $deal);
+                        $this->notif->codReminder($deal->seller_id, $deal);
                         $count++;
                     } catch (\Throwable $e) {
                         Log::warning('Gagal mengirim pengingat deal', [

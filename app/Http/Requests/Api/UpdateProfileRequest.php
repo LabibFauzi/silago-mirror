@@ -15,8 +15,8 @@ class UpdateProfileRequest extends FormRequest
     {
         return [
             'name' => 'sometimes|string|max:100',
-            'phone' => 'sometimes|nullable|string|max:30',
             'profile_photo' => 'sometimes|nullable|image|max:2048|mimes:jpg,jpeg,png,webp',
+            'remove_profile_photo' => 'sometimes|boolean',
         ];
     }
 }

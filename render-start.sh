@@ -42,9 +42,13 @@ EOF
     chown www-data:www-data .env
 fi
 
-# Generate APP_KEY if missing (Render should set this via env vars)
+# Generate APP_KEY hanya jika Render belum menyediakannya.
 echo "Ensuring APP_KEY exists..."
-php artisan key:generate --force --no-interaction 2>/dev/null || true
+if [ -z "${APP_KEY:-}" ]; then
+    php artisan key:generate --force --no-interaction
+else
+    echo "APP_KEY sudah tersedia dari environment, melewati key:generate."
+fi
 
 # Pastikan symlink public/storage ada. Tanpa ini file di storage/app/public
 # tidak bisa diakses lewat URL /storage/... (menyebabkan 404 pada gambar).

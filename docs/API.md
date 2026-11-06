@@ -117,7 +117,6 @@ Publik, tanpa auth. Tidak terblokir maintenance? (semua publik pakai `maintenanc
   "max_photos": 5,
   "maintenance_mode": false,
   "listing_active_days": 30,
-  "low_stock_threshold": 3,
   "report_reasons": ["Penipuan","Barang terlarang","Sengketa transaksi","Perilaku pengguna","Foto tidak sesuai","Spam chat","Lainnya"],
   "allowed_email_domains": "@polines.ac.id\n@students.polines.ac.id"
 }
@@ -226,7 +225,6 @@ Auth + multipart. Set `seller_id=me`, `status=available`, `verification_status=p
 | completeness | nullable max255 |
 | sell_reason | nullable string |
 | price | required numeric min1 |
-| stock | required int min1 |
 | category_id | required exists categories.id |
 | photos | required array min1 max `max_photos` (default 5) |
 | photos.* | image mimes jpg/jpeg/png/webp max1024 |
@@ -305,12 +303,16 @@ Auth, participant only, `StoreMessageRequest`:
 | location_address | nullable max255 |
 | location_accuracy | nullable integer |
 
-`DB::transaction` create + `touch` conversation, notify `pesanBaru` ke lawan.
+`DB::transaction` create + `touch` conversation, lalu kirim notifikasi `new_message` ke lawan (diagregasi per percakapan; dilewati bila presence penerima masih aktif).
 → 201 `MessageResource`
 
 #### POST /conversations/{conversation}/read
-Auth, participant only. `where sender_id != me AND read_at IS NULL → read_at=now()`
+Auth, participant only. `where sender_id != me AND read_at IS NULL → read_at=now()`, memperbarui presence, dan menandai notifikasi `new_message` percakapan ini sebagai dibaca.
 → 200 `{message:"Messages marked as read"}`
+
+#### POST /conversations/{conversation}/presence
+Auth, participant only. Heartbeat saat layar chat terbuka; dipakai untuk menekan notifikasi pesan baru.
+→ 200 `{message:"Presence diperbarui."}`
 
 ---
 
@@ -326,9 +328,9 @@ Auth, participant only. Validasi `price >0 && <= product.price` else 400. Body `
 #### POST /offers/{message}/accept
 Auth, participant only, recipient only (sender ≠ me) else 403. Body `?quantity int min1 default1`. `OfferService::acceptOffer`:
 - lock offer, cek pending, bukan sender
-- lock conversation+product, cek `stock >= quantity` else 422
+- lock conversation+product, cek produk masih `available` dan terverifikasi
 - cek tidak ada `deals where conversation_id & status=agreed` else 409
-- `offer_status=accepted`, `stock -= quantity`, `product.status = sold if 0 else available`, create `MarketplaceDeal status=agreed`
+- `offer_status=accepted`, `product.status = reserved`, create `MarketplaceDeal status=agreed`
 
 → 201 `DealResource` · 403/409/422
 
@@ -377,11 +379,11 @@ Auth, buyer only. `CompleteRequest`: `token required_without:code` XOR `code siz
 4. jika `completion_token_expires_at` past → 422
 5. set `completed`, `completed_at=now`, clear hashes
 
-→ 200 `DealResource` · 422/423/409 · Notif `transaksiSelesai` ke kedua pihak
+→ 200 `DealResource` · 422/423/409 · Notif `deal_completed` ke kedua pihak
 
 #### POST /deals/{deal}/cancel
 Auth, buyer|seller, `status=agreed` only. Body `?note max1000`. `DealService::cancel`:
-- lock deal+product, `stock += quantity`, `product.status=available`, `deal.status=cancelled`, clear QR
+- lock deal+product, `product.status=available`, `deal.status=cancelled`, clear QR
 
 → 200 `{message:"Deal cancelled"}` · 409
 
@@ -427,7 +429,9 @@ Auth. `Product where user_id=user AND status=available AND is_verified=true → 
 ### 13. Notifications
 
 #### GET /notifications
-Auth. `where user_id=me order created_at desc paginate 20` → `NotificationResource` (created_at format `D MMM YYYY, HH:mm` Asia/Jakarta)
+Auth. `where user_id=me order updated_at desc paginate 20` → `NotificationResource`. Setiap item memuat `type`, `reference_id`, `data`, `is_read`, serta `created_at`/`updated_at` ISO-8601. Tipe yang dipakai: `new_message`, `new_offer`, `offer_rejected`, `deal_agreed`, `deal_renegotiated`, `deal_cancelled`, `deal_completed`, `review_received`, `review_reminder`, `report_updated`, `cod_reminder`, `product_approved`, `product_rejected`, `product_archived`.
+
+Notifikasi pesan baru diagregasi per percakapan (satu baris belum dibaca, `data.count` bertambah) dan tidak dibuat saat penerima sedang membuka chat (presence heartbeat).
 
 #### GET /notifications/unread-count
 → 200 `{count}`
@@ -436,7 +440,7 @@ Auth. `where user_id=me order created_at desc paginate 20` → `NotificationReso
 Owner only else 403. `is_read=true`
 
 #### POST /notifications/read-all
-`where is_read=false → is_read=true` → `{message:"All marked as read"}`
+`where is_read=false → is_read=true` → `{message:"All marked as read", count}`
 
 ---
 
@@ -470,10 +474,10 @@ Auth. Toggle: jika exists → delete `favorited=false` else create `favorited=tr
 ```
 
 ### ProductResource
-`id, name, description, condition, specification, completeness, sell_reason, price(float), stock, status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
+`id, name, description, condition, specification, completeness, sell_reason, price(float), status, verification_status, rejection_note(only owner), scan_result/scan_note(only staff), expires_at, created_at, updated_at, seller{id,name,profile_photo_url,is_verified}, category{id,name,slug,icon}, images[{id,url,sort_order}], is_favorited`
 
 ### ProductListResource
-`id, name, price, stock, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`
+`id, name, price, status, verification_status, condition, created_at, cover_image(url|null), seller{id,name,profile_photo_url}, category{id,name,slug}, is_favorited`
 
 ### ConversationResource
 `id, product{id,name,cover_image_url,price,status,verification_status}, other_party{id,name,profile_photo_url,is_verified}, last_message{body truncated 50, created_at diffForHumans}|null, unread_count, updated_at`
@@ -519,7 +523,7 @@ curl -X PUT $BASE/me -H "Authorization: Bearer $TOKEN" -F name="Budi S" -F profi
 # Products
 curl "$BASE/products?search=laptop&sort=price_asc&category_id=1" -H "Authorization: Bearer $TOKEN"
 curl -X POST $BASE/products -H "Authorization: Bearer $TOKEN" \
-  -F name="Laptop ThinkPad" -F condition="Bekas Layak" -F price=3500000 -F stock=2 -F category_id=1 -F photos[]=@a.jpg -F photos[]=@b.jpg
+  -F name="Laptop ThinkPad" -F condition="Bekas Layak" -F price=3500000 -F category_id=1 -F photos[]=@a.jpg -F photos[]=@b.jpg
 curl $BASE/products/1 -H "Authorization: Bearer $TOKEN"
 
 # Conversations & messages

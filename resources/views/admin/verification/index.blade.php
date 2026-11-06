@@ -178,7 +178,6 @@
                     <div><span class="text-muted block">Penjual:</span> <span class="font-medium text-ink" x-text="selectedProduct?.seller?.name || '-'"></span></div>
                     <div><span class="text-muted block">Kategori:</span> <span class="font-medium text-ink" x-text="selectedProduct?.category?.name || '-'"></span></div>
                     <div><span class="text-muted block">Harga:</span> <span class="font-medium text-ink" x-text="'Rp ' + (selectedProduct?.price || 0)"></span></div>
-                    <div><span class="text-muted block">Stok:</span> <span class="font-medium text-ink" x-text="selectedProduct?.stock || 0"></span></div>
                     <div class="col-span-2"><span class="text-muted block">Hasil Pindai (AI):</span> <span class="font-medium text-ink" x-text="selectedProduct?.scan_result || '-'"></span></div>
                 </div>
 

@@ -4,13 +4,15 @@ namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
 use App\Http\Resources\ConversationResource;
+use App\Http\Resources\DealResource;
+use App\Http\Resources\MessageResource;
 use App\Models\Conversation;
+use App\Models\ConversationPresence;
 use App\Models\MarketplaceDeal;
+use App\Models\Message;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\ValidationException;
 
 class ConversationController extends Controller
 {
@@ -23,7 +25,14 @@ class ConversationController extends Controller
                 $q->where('buyer_id', $userId)
                   ->orWhere('seller_id', $userId);
             })
-            ->with(['product.images', 'buyer', 'seller', 'lastMessage']);
+            ->with([
+                'product.images',
+                'buyer',
+                'seller',
+                'lastMessage',
+                'latestDeal',
+                'latestOffer',
+            ]);
 
         if ($request->filled('q')) {
             $search = strtolower($request->q);
@@ -44,6 +53,61 @@ class ConversationController extends Controller
         });
 
         return ConversationResource::collection($conversations);
+    }
+
+    public function unreadCount(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        $count = Message::query()
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->whereHas('conversation', function ($query) use ($userId) {
+                $query->where(function ($q) use ($userId) {
+                    $q->where('buyer_id', $userId)
+                        ->orWhere('seller_id', $userId);
+                });
+            })
+            ->count();
+
+        return response()->json(['count' => $count]);
+    }
+
+    public function presence(Request $request, Conversation $conversation)
+    {
+        $userId = $request->user()->id;
+
+        if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
+            return response()->json(['message' => 'Kamu tidak memiliki akses.'], 403);
+        }
+
+        ConversationPresence::updateOrCreate(
+            [
+                'conversation_id' => $conversation->id,
+                'user_id' => $userId,
+            ],
+            ['last_seen_at' => now()],
+        );
+
+        return response()->json(['message' => 'Presence diperbarui.']);
+    }
+
+    public function markAllRead(Request $request)
+    {
+        $userId = $request->user()->id;
+
+        Message::query()
+            ->where('sender_id', '!=', $userId)
+            ->whereNull('read_at')
+            ->whereHas('conversation', function ($query) use ($userId) {
+                $query->where(function ($q) use ($userId) {
+                    $q->where('buyer_id', $userId)
+                        ->orWhere('seller_id', $userId);
+                });
+            })
+            ->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Semua pesan ditandai sudah dibaca.']);
     }
 
     public function store(Request $request, Product $product)
@@ -75,36 +139,40 @@ class ConversationController extends Controller
 
         // Pastikan user adalah peserta
         if ($conversation->buyer_id !== $userId && $conversation->seller_id !== $userId) {
-            return response()->json(['message' => 'Unauthorized'], 403);
+            return response()->json(['message' => 'Kamu tidak memiliki akses.'], 403);
         }
 
-        $conversation->load(['product.images', 'buyer', 'seller']);
-        
-        $lastOffer = $conversation->messages()
-            ->where('type', 'offer')
-            ->latest()
-            ->first();
+        $conversation->load([
+            'product.images',
+            'buyer',
+            'seller',
+            'latestOffer',
+            'latestDeal',
+        ]);
 
-        // Cari active deal
-        $activeDeal = MarketplaceDeal::where('product_id', $conversation->product_id)
-            ->where('buyer_id', $conversation->buyer_id)
-            ->where('seller_id', $conversation->seller_id)
-            ->whereIn('status', ['agreed'])
+        $lastOffer = $conversation->latestOffer;
+        $latestDeal = $conversation->latestDeal;
+
+        // Deal aktif adalah deal negosiasi/kesepakatan terbaru. Untuk riwayat
+        // selesai/dibatalkan, mobile memakai latest_deal.
+        $activeDeal = $conversation->marketplaceDeals()
+            ->whereIn('status', ['negotiating', 'agreed'])
+            ->latest('id')
             ->first();
 
         return response()->json([
             'data' => [
                 'conversation' => new ConversationResource($conversation),
-                'last_offer' => $lastOffer ? [
-                    'id' => $lastOffer->id,
-                    'offer_price' => $lastOffer->offer_price,
-                    'offer_status' => $lastOffer->offer_status,
-                ] : null,
-                'active_deal' => $activeDeal ? [
-                    'id' => $activeDeal->id,
-                    'status' => $activeDeal->status,
-                ] : null,
-            ]
+                'last_offer' => $lastOffer
+                    ? (new MessageResource($lastOffer))->resolve($request)
+                    : null,
+                'active_deal' => $activeDeal
+                    ? (new DealResource($activeDeal->load(['product', 'buyer', 'seller'])))->resolve($request)
+                    : null,
+                'latest_deal' => $latestDeal
+                    ? (new DealResource($latestDeal->load(['product', 'buyer', 'seller'])))->resolve($request)
+                    : null,
+            ],
         ]);
     }
 }

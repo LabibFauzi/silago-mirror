@@ -21,7 +21,6 @@ class ProductListResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'price' => (float) $this->price,
-            'stock' => $this->stock,
             'status' => $this->status,
             'verification_status' => $this->verification_status,
             'condition' => $this->condition,

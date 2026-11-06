@@ -60,7 +60,7 @@ class ReportController extends Controller
                 $this->auditLogService->logReport('Selesaikan laporan', $reportIdFormatted, $report->id);
             });
 
-            $this->notificationService->laporanSelesai($report->reporter_id, $report->id);
+            $this->notificationService->reportUpdated($report->fresh('marketplaceDeal'), 'resolved');
 
             return back()->with('success', 'Laporan berhasil diselesaikan.');
         } catch (\Exception $e) {
@@ -88,6 +88,8 @@ class ReportController extends Controller
                 $reportIdFormatted = '#L-' . str_pad($report->id, 4, '0', STR_PAD_LEFT);
                 $this->auditLogService->logReport('Tolak laporan', $reportIdFormatted, $report->id, ['note' => $request->input('admin_note')]);
             });
+
+            $this->notificationService->reportUpdated($report->fresh('marketplaceDeal'), 'dismissed');
 
             return back()->with('success', 'Laporan ditolak.');
         } catch (\Exception $e) {

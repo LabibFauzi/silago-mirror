@@ -53,7 +53,7 @@ class UserController extends Controller
     {
         $user->loadCount([
             'products as active_products' => fn($q) => $q->where('status', 'available'),
-            'marketplaceDeals as active_deals' => fn($q) => $q->where('status', 'active')
+            'marketplaceDeals as active_deals' => fn($q) => $q->whereIn('status', ['negotiating', 'agreed'])
         ]);
         
         return view('admin.users.show', compact('user'));

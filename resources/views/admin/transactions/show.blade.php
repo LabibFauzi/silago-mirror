@@ -64,7 +64,10 @@
             <h3 class="text-sm font-medium text-muted mb-4">Detail Transaksi</h3>
             <div class="space-y-3 text-sm">
                 <div><span class="text-muted">Jumlah:</span> <span class="text-ink font-medium">{{ $deal->quantity ?? 0 }} unit</span></div>
-                <div><span class="text-muted">Harga Disepakati:</span> <span class="text-ink font-medium">Rp{{ number_format($deal->agreed_price ?? 0, 0, ',', '.') }}</span></div>
+                <div><span class="text-muted">Harga Disepakati:</span> <span class="text-ink font-medium">{{ $deal->agreed_price ? 'Rp'.number_format($deal->agreed_price, 0, ',', '.') : '-' }}</span></div>
+                @if($deal->status === 'negotiating')
+                    <div><span class="text-muted">Penawaran Terakhir:</span> <span class="text-ink font-medium">{{ $deal->current_offer_price ? 'Rp'.number_format($deal->current_offer_price, 0, ',', '.') : '-' }}</span></div>
+                @endif
                 <div>
                     <span class="text-muted">Metode Pembayaran:</span> 
                     @include('admin.partials.payment-method', ['paymentMethod' => $deal->payment_method])
@@ -76,13 +79,20 @@
         <div class="bg-white rounded-xl border border-line shadow-sm p-6">
             <h3 class="text-sm font-medium text-muted mb-4">Status Transaksi</h3>
             <div class="space-y-3 text-sm">
-                @if($deal->status === 'active')
+                @if($deal->status === 'negotiating')
+                    <div class="flex items-center gap-2">
+                        <span class="w-2 h-2 bg-amber-500 rounded-full animate-pulse"></span>
+                        <span class="text-ink font-medium">Sedang negosiasi harga</span>
+                    </div>
+                    <div><span class="text-muted">Penawaran terakhir:</span> <span class="text-ink font-medium">{{ $deal->current_offer_price ? 'Rp'.number_format($deal->current_offer_price, 0, ',', '.') : '-' }}</span></div>
+                    <div><span class="text-muted">Menunggu:</span> <span class="text-ink font-medium">Kesepakatan kedua pihak</span></div>
+                @elseif(in_array($deal->status, ['agreed', 'active'], true))
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-                        <span class="text-ink font-medium">Transaksi sedang berjalan</span>
+                        <span class="text-ink font-medium">Transaksi disepakati</span>
                     </div>
-                    <div><span class="text-muted">Dimulai sejak:</span> <span class="text-ink font-medium">{{ $deal->agreed_at?->format('d M Y H:i') ?? '-' }}</span></div>
-                    <div><span class="text-muted">Menunggu:</span> <span class="text-ink font-medium">Konfirmasi penyelesaian oleh pembeli</span></div>
+                    <div><span class="text-muted">Disepakati sejak:</span> <span class="text-ink font-medium">{{ $deal->agreed_at?->format('d M Y H:i') ?? '-' }}</span></div>
+                    <div><span class="text-muted">Menunggu:</span> <span class="text-ink font-medium">Penyelesaian transaksi lewat QR</span></div>
                 @elseif($deal->status === 'dispute')
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-orange-500 rounded-full animate-pulse"></span>
@@ -95,7 +105,7 @@
                         <span class="text-ink font-medium">Transaksi selesai</span>
                     </div>
                     <div><span class="text-muted">Selesai pada:</span> <span class="text-ink font-medium">{{ $deal->completed_at?->format('d M Y H:i') ?? '-' }}</span></div>
-                @elseif($deal->status === 'canceled')
+                @elseif(in_array($deal->status, ['cancelled', 'canceled'], true))
                     <div class="flex items-center gap-2">
                         <span class="w-2 h-2 bg-red-500 rounded-full"></span>
                         <span class="text-ink font-medium">Transaksi dibatalkan</span>

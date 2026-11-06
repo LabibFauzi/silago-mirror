@@ -29,13 +29,13 @@ class TransactionController extends Controller
         $deals = MarketplaceDeal::with(['buyer', 'seller', 'product', 'reports'])
             ->when($status && $status !== 'all', function ($q) use ($status) {
                 if ($status === 'berjalan') {
-                    $q->where('status', 'active');
+                    $q->whereIn('status', ['negotiating', 'agreed']);
                 } elseif ($status === 'selesai') {
                     $q->where('status', 'completed');
-                } elseif ($status === 'canceled') {
-                    $q->where('status', 'canceled');
+                } elseif ($status === 'canceled' || $status === 'cancelled') {
+                    $q->where('status', 'cancelled');
                 } elseif ($status === 'dispute') {
-                    $q->where('status', 'dispute');
+                    $q->whereNotNull('reported_at');
                 }
             })
             ->when($search, function ($q) use ($search) {

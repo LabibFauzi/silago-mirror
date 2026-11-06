@@ -17,7 +17,6 @@ class SettingSeeder extends Seeder
             ['key' => 'support_email',             'value' => 'support@silago.id'],
             ['key' => 'max_photos',                'value' => '5'],
             ['key' => 'listing_active_days',       'value' => '30'],
-            ['key' => 'low_stock_threshold',       'value' => '2'],
             ['key' => 'session_timeout_minutes',   'value' => '30'],
             ['key' => 'admin_2fa_required',        'value' => '0'],
             ['key' => 'maintenance_mode',          'value' => '0'],

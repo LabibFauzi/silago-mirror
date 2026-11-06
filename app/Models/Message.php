@@ -4,6 +4,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Message extends Model
 {
@@ -23,6 +25,9 @@ class Message extends Model
         'location_address',
         'location_accuracy',
         'read_at',
+        'image_path',
+        'image_thumbnail',
+        'image_caption',
     ];
 
     protected function casts(): array
@@ -49,5 +54,28 @@ class Message extends Model
     public function parentOffer(): BelongsTo
     {
         return $this->belongsTo(Message::class, 'parent_offer_id');
+    }
+
+    public function getImageUrlAttribute(): ?string
+    {
+        return $this->resolveImageUrl($this->image_path);
+    }
+
+    public function getImageThumbnailAttribute($value): ?string
+    {
+        return $this->resolveImageUrl($value);
+    }
+
+    private function resolveImageUrl(?string $path): ?string
+    {
+        if (!$path) {
+            return null;
+        }
+
+        if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+            return $path;
+        }
+
+        return Storage::disk('public')->url($path);
     }
 }

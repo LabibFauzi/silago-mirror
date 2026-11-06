@@ -51,14 +51,16 @@
                         <td class="px-6 py-4">{{ $deal->buyer->name ?? '-' }}</td>
                         <td class="px-6 py-4">{{ $deal->seller->name ?? '-' }}</td>
                         <td class="px-6 py-4 truncate max-w-xs">{{ $deal->product->name ?? '-' }}</td>
-                        <td class="px-6 py-4">Rp{{ number_format($deal->agreed_price ?? 0, 0, ',', '.') }}</td>
+                        <td class="px-6 py-4">Rp{{ number_format($deal->agreed_price ?? $deal->current_offer_price ?? 0, 0, ',', '.') }}</td>
                         <td class="px-6 py-4">
-                            @if($deal->status === 'canceled')
-                                <span class="bg-red-100 text-red-700 py-1 px-2 rounded-md text-xs">Canceled</span>
+                            @if(in_array($deal->status, ['cancelled', 'canceled'], true))
+                                <span class="bg-red-100 text-red-700 py-1 px-2 rounded-md text-xs">Dibatalkan</span>
                             @elseif($deal->status === 'completed')
                                 <span class="bg-green-100 text-green-700 py-1 px-2 rounded-md text-xs">Selesai</span>
                             @elseif($deal->status === 'dispute')
                                 <span class="bg-orange-100 text-orange-700 py-1 px-2 rounded-md text-xs">Sengketa</span>
+                            @elseif($deal->status === 'negotiating')
+                                <span class="bg-amber-100 text-amber-700 py-1 px-2 rounded-md text-xs">Negosiasi</span>
                             @else
                                 <span class="bg-blue-100 text-blue-700 py-1 px-2 rounded-md text-xs">Berjalan</span>
                             @endif
